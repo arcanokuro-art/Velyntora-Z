@@ -20,6 +20,7 @@
 #include <QScreen>
 #include <QDialog>
 #include <QDockWidget>
+#include <QSizePolicy>
 #include <QIcon>
 #include <QInputDialog>
 #include <QLayout>
@@ -497,7 +498,13 @@ KisMainWindow::KisMainWindow(QUuid uuid)
     if (toolbox) {
         addDockWidget(Qt::LeftDockWidgetArea, toolbox);
         toolbox->setVisible(true);
-        toolbox->setMinimumWidth(92);
+
+        // Three compact tool columns are the Velyntora Z default.  Keep the
+        // strip narrow enough for Android landscape while allowing the
+        // toolbox's existing scroll area to expose every Krita tool.
+        toolbox->setMinimumWidth(112);
+        toolbox->setMaximumWidth(156);
+        toolbox->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
     }
 
     QDockWidget *layersDocker = d->dockWidgetsMap.value(QStringLiteral("KisLayerBox"));
