@@ -184,8 +184,10 @@ void __KisToolPathLocalTool::addPathShape(KoPathShape* pathShape)
         if (!qFuzzyIsNull(delta.x()) || !qFuzzyIsNull(delta.y())) {
             start->setControlPoint2(start->point() + delta / 3.0);
             end->setControlPoint1(end->point() - delta / 3.0);
-            start->setProperty(KoPathPoint::IsSmooth);
-            end->setProperty(KoPathPoint::IsSmooth);
+
+            // Endpoints only own one active handle on an open Line/Curve.
+            // Do not mark them IsSmooth: that flag describes a join with
+            // incoming and outgoing tangents and is misleading at endpoints.
             pathShape->normalize();
         }
     }
