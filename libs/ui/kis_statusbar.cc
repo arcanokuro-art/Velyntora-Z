@@ -24,8 +24,10 @@
 #include <klocalizedstring.h>
 #include <kformat.h>
 
+#include <KoColor.h>
 #include <KoColorProfile.h>
 #include <KoColorSpace.h>
+#include <KoColorSpaceRegistry.h>
 #include <KoToolManager.h>
 #include <KoViewConverter.h>
 #include <QHBoxLayout>
