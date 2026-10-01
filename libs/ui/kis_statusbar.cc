@@ -16,6 +16,8 @@
 #include <QColorDialog>
 #include <QSettings>
 #include <QMenu>
+#include <QTimer>
+#include <QEvent>
 
 #include <ksqueezedtextlabel.h>
 #include <klocalizedstring.h>
@@ -163,17 +165,38 @@ void KisStatusBar::setup()
         });
 
         if (removable) {
+            auto removeCustomColor = [swatch, color]() {
+                QSettings settings;
+                QStringList colors =
+                    settings.value(QStringLiteral("Velyntora/CustomQuickColors")).toStringList();
+                colors.removeAll(color.name(QColor::HexRgb));
+                settings.setValue(QStringLiteral("Velyntora/CustomQuickColors"), colors);
+                swatch->deleteLater();
+            };
+
             swatch->setContextMenuPolicy(Qt::CustomContextMenu);
             connect(swatch, &QWidget::customContextMenuRequested, this,
-                    [swatch, color](const QPoint &pos) {
+                    [swatch, removeCustomColor](const QPoint &pos) {
                 QMenu menu;
                 QAction *remove = menu.addAction(i18n("Remove custom color"));
                 if (menu.exec(swatch->mapToGlobal(pos)) == remove) {
-                    QSettings settings;
-                    QStringList colors = settings.value(QStringLiteral("Velyntora/CustomQuickColors")).toStringList();
-                    colors.removeAll(color.name(QColor::HexRgb));
-                    settings.setValue(QStringLiteral("Velyntora/CustomQuickColors"), colors);
-                    swatch->deleteLater();
+                    removeCustomColor();
+                }
+            });
+
+            // Android/touch: holding a custom swatch for 650 ms opens the
+            // same delete action without requiring a desktop right click.
+            QTimer *holdTimer = new QTimer(swatch);
+            holdTimer->setSingleShot(true);
+            holdTimer->setInterval(650);
+            connect(swatch, &QToolButton::pressed, holdTimer,
+                    qOverload<>(&QTimer::start));
+            connect(swatch, &QToolButton::released, holdTimer, &QTimer::stop);
+            connect(holdTimer, &QTimer::timeout, this, [swatch, removeCustomColor]() {
+                QMenu menu;
+                QAction *remove = menu.addAction(i18n("Remove custom color"));
+                if (menu.exec(swatch->mapToGlobal(swatch->rect().center())) == remove) {
+                    removeCustomColor();
                 }
             });
         }
