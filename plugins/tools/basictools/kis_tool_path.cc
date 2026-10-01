@@ -144,6 +144,13 @@ void KisToolPath::endPrimaryAction(KoPointerEvent *event)
         return;
     }
 
+    // If the target became non-editable while dragging (layer lock, node
+    // switch, etc.), cancel rather than committing into an invalid target.
+    if (!nodeEditable()) {
+        localTool()->cancelPath();
+        return;
+    }
+
     mouseReleaseEvent(event);
 
     // Velyntora Line/Curve is line-first: a normal drag creates one
