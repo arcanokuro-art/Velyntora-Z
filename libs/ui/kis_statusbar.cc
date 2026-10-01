@@ -19,6 +19,7 @@
 #include <QTimer>
 #include <QEvent>
 #include <QGridLayout>
+#include <QLabel>
 
 #include <ksqueezedtextlabel.h>
 #include <klocalizedstring.h>
@@ -315,6 +316,14 @@ void KisStatusBar::setup()
     addStatusBarItem(m_memoryReportBox);
     m_memoryReportBox->setVisible(false);
 
+    // Velyntora Z: show document dimensions directly in the compact bottom
+    // bar, matching the Pinta-like reference without exposing memory details.
+    m_velyntoraImageSizeLabel = new QLabel(m_statusBar);
+    m_velyntoraImageSizeLabel->setObjectName("VelyntoraImageSize");
+    m_velyntoraImageSizeLabel->setContentsMargins(6, 0, 6, 0);
+    m_velyntoraImageSizeLabel->setToolTip(i18n("Canvas size"));
+    addStatusBarItem(m_velyntoraImageSizeLabel);
+
     connect(m_memoryReportBox, SIGNAL(clicked()), SLOT(showMemoryInfoToolTip()));
 
     connect(KisMemoryStatisticsServer::instance(),
@@ -430,6 +439,17 @@ void KisStatusBar::imageSizeChanged()
     m_memoryReportBox->setIcon(m_memoryStatusIcon);
     m_memoryReportBox->setText(sizeText);
     m_memoryReportBox->setToolTip(m_longMemoryTag);
+
+    if (m_velyntoraImageSizeLabel) {
+        if (image) {
+            m_velyntoraImageSizeLabel->setText(
+                i18nc("@info:status canvas dimensions", "%1 × %2 px", image->width(), image->height()));
+            m_velyntoraImageSizeLabel->setVisible(true);
+        } else {
+            m_velyntoraImageSizeLabel->clear();
+            m_velyntoraImageSizeLabel->setVisible(false);
+        }
+    }
 }
 
 void KisStatusBar::updateSelectionIcon()
