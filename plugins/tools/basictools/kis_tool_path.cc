@@ -128,7 +128,14 @@ void KisToolPath::beginPrimaryAction(KoPointerEvent* event)
 
 void KisToolPath::continuePrimaryAction(KoPointerEvent *event)
 {
-    if (!nodeEditable() || !localTool()->pathStarted()) {
+    if (!localTool()->pathStarted()) {
+        return;
+    }
+
+    // If editability changes mid-gesture, cancel immediately instead of
+    // leaving a hidden delegated path alive until release.
+    if (!nodeEditable()) {
+        localTool()->cancelPath();
         return;
     }
 
