@@ -169,7 +169,12 @@ void __KisToolPathLocalTool::addPathShape(KoPathShape* pathShape)
     // manipulate traditional Bezier handles.
     KoPathPoint *start = pathShape->pointByIndex(KoPathPointIndex(0, 0));
     KoPathPoint *end = pathShape->pointByIndex(KoPathPointIndex(0, 1));
-    if (start && end) {
+
+    // Line/Curve owns exactly one segment. If an unexpected extra point is
+    // present (for example from a synthesized touch/mouse event), do not
+    // reinterpret a legacy multi-point path as our simple curve.
+    KoPathPoint *extra = pathShape->pointByIndex(KoPathPointIndex(0, 2));
+    if (start && end && !extra) {
         const QPointF delta = end->point() - start->point();
 
         // Keep the initial result visually identical to a straight line.
