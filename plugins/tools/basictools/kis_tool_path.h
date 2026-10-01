@@ -54,6 +54,7 @@ public:
     void beginPrimaryAction(KoPointerEvent* event) override;
     void continuePrimaryAction(KoPointerEvent *event) override;
     void endPrimaryAction(KoPointerEvent *event) override;
+    void deactivate() override;
 
     void beginAlternateAction(KoPointerEvent *event, AlternateAction action) override;
 
