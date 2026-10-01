@@ -247,9 +247,11 @@ void KisStatusBar::setup()
     QStringList normalizedCustomColors;
     for (const QString &name : std::as_const(savedCustomColors)) {
         const QColor color(name);
-        const QString normalizedName = color.name(QColor::HexArgb);
-        if (color.isValid() && !normalizedCustomColors.contains(normalizedName)) {
-            normalizedCustomColors.append(normalizedName);
+        if (color.isValid()) {
+            const QString normalizedName = color.name(QColor::HexArgb);
+            if (!normalizedCustomColors.contains(normalizedName)) {
+                normalizedCustomColors.append(normalizedName);
+            }
         }
     }
     if (normalizedCustomColors.size() > maxCustomQuickColors) {
