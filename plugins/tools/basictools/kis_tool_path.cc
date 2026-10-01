@@ -122,6 +122,26 @@ void KisToolPath::beginAlternateAction(KoPointerEvent *event, AlternateAction ac
     }
 }
 
+void KisToolPath::continueAlternateAction(KoPointerEvent *event, AlternateAction action)
+{
+    if (localTool()->pathStarted()) {
+        event->accept();
+        return;
+    }
+
+    DelegatedPathTool::continueAlternateAction(event, action);
+}
+
+void KisToolPath::endAlternateAction(KoPointerEvent *event, AlternateAction action)
+{
+    if (localTool()->pathStarted()) {
+        event->accept();
+        return;
+    }
+
+    DelegatedPathTool::endAlternateAction(event, action);
+}
+
 void KisToolPath::beginPrimaryAction(KoPointerEvent* event)
 {
     if (!nodeEditable()) {
