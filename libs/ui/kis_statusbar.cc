@@ -339,6 +339,9 @@ void KisStatusBar::setup()
 
     connect(m_canvasAngleSelector, SIGNAL(angleChanged(qreal)), SLOT(slotCanvasAngleSelectorAngleChanged(qreal)));
     m_canvasAngleSelector->setVisible(false);
+    m_canvasAngleSelector->setToolTip(i18n("Canvas rotation"));
+    m_canvasAngleSelector->setMinimumWidth(76);
+    m_canvasAngleSelector->setMaximumWidth(104);
 
     // Keep the compact drawing bar usable on Android and narrow windows.
     // Fixed swatches keep their touch targets while the palette itself yields
@@ -371,6 +374,8 @@ void KisStatusBar::setView(QPointer<KisView> imageView)
 
     if (imageView) {
         m_imageView = imageView;
+        // Rotation is part of the compact Velyntora Z bottom bar so the
+        // current canvas angle stays directly accessible beside size/zoom.
         m_canvasAngleSelector->setVisible(true);
         connect(m_imageView, SIGNAL(sigColorSpaceChanged(const KoColorSpace*)),
                 this, SLOT(updateStatusBarProfileLabel()));
