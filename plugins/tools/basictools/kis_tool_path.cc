@@ -186,6 +186,10 @@ void __KisToolPathLocalTool::addPathShape(KoPathShape* pathShape)
             // handles left over from any legacy path-tool state.
             start->removeControlPoint1();
             end->removeControlPoint2();
+            start->unsetProperty(KoPathPoint::IsSmooth);
+            start->unsetProperty(KoPathPoint::IsSymmetric);
+            end->unsetProperty(KoPathPoint::IsSmooth);
+            end->unsetProperty(KoPathPoint::IsSymmetric);
             start->setControlPoint2(start->point() + delta / 3.0);
             end->setControlPoint1(end->point() - delta / 3.0);
 
