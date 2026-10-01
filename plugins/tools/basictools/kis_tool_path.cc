@@ -124,6 +124,10 @@ void KisToolPath::continuePrimaryAction(KoPointerEvent *event)
 
 void KisToolPath::endPrimaryAction(KoPointerEvent *event)
 {
+    if (!localTool()->pathStarted()) {
+        return;
+    }
+
     mouseReleaseEvent(event);
 
     // Velyntora Line/Curve is line-first: a normal drag creates one
