@@ -18,6 +18,7 @@
 #include <QMenu>
 #include <QTimer>
 #include <QEvent>
+#include <QGridLayout>
 
 #include <ksqueezedtextlabel.h>
 #include <klocalizedstring.h>
@@ -106,8 +107,21 @@ void KisStatusBar::setup()
 
     updateColorButton(m_velyntoraForegroundColor, m_viewManager->canvasResourceProvider()->fgColor());
     updateColorButton(m_velyntoraBackgroundColor, m_viewManager->canvasResourceProvider()->bgColor());
-    quickColorsLayout->addWidget(m_velyntoraForegroundColor);
-    quickColorsLayout->addWidget(m_velyntoraBackgroundColor);
+    // Pinta-like overlapping foreground/background chips.  Keep them as
+    // separate real Krita resources while presenting them as one compact
+    // control that is easy to recognize on touch screens.
+    QWidget *dualColor = new QWidget(quickColors);
+    dualColor->setFixedSize(42, 34);
+    QGridLayout *dualColorLayout = new QGridLayout(dualColor);
+    dualColorLayout->setContentsMargins(0, 0, 0, 0);
+    dualColorLayout->setSpacing(0);
+    m_velyntoraBackgroundColor->setFixedSize(26, 26);
+    m_velyntoraForegroundColor->setFixedSize(26, 26);
+    dualColorLayout->addWidget(m_velyntoraBackgroundColor, 0, 0, Qt::AlignRight | Qt::AlignBottom);
+    dualColorLayout->addWidget(m_velyntoraForegroundColor, 0, 0, Qt::AlignLeft | Qt::AlignTop);
+    m_velyntoraBackgroundColor->lower();
+    m_velyntoraForegroundColor->raise();
+    quickColorsLayout->addWidget(dualColor);
     quickColorsLayout->addSpacing(4);
 
     // Clicking either large swatch opens an unrestricted color picker.
