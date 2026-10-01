@@ -112,6 +112,13 @@ void KisToolPath::beginPrimaryAction(KoPointerEvent* event)
 
 void KisToolPath::continuePrimaryAction(KoPointerEvent *event)
 {
+    if (!nodeEditable() || !localTool()->pathStarted()) {
+        return;
+    }
+
+    // Only update the live segment while an actual Line/Curve gesture is
+    // active. This prevents hover/synthesized touch moves from feeding the
+    // legacy path state machine after the segment has already been committed.
     mouseMoveEvent(event);
 }
 
