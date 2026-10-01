@@ -1,4 +1,5 @@
 set(kritatoolremoveai_SOURCES
+    tool_remove_ai.cpp
     kis_tool_remove_ai.cpp
 )
 
