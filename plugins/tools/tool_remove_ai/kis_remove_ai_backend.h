@@ -3,6 +3,7 @@
 
 #include <QImage>
 #include <QString>
+#include <QRect>
 
 class KisRemoveAIBackend
 {
@@ -15,6 +16,7 @@ public:
     struct Result {
         bool ok = false;
         QImage image;
+        QRect sourceRect;
         QString error;
     };
 
