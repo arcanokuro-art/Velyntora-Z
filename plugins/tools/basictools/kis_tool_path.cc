@@ -206,9 +206,13 @@ QList<QPointer<QWidget> > KisToolPath::createOptionWidgets()
     // Keep the inherited shape/brush options, but make the simplified
     // interaction explicit to assistive UI and future maintainers.
     for (const QPointer<QWidget> &widget : widgets) {
-        if (widget) {
-            widget->setProperty("velyntoraLineCurve", true);
+        if (!widget) {
+            continue;
         }
+
+        widget->setProperty("velyntoraLineCurve", true);
+        widget->setAccessibleDescription(
+            i18n("Options for the simplified Line/Curve tool. Curvature is handled without exposed Bezier handles."));
     }
 
     return widgets;
