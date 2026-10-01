@@ -102,7 +102,7 @@ void KisStatusBar::setup()
         const QColor displayColor = color.toQColor();
         button->setStyleSheet(QStringLiteral(
             "QToolButton { background:%1; border:2px solid palette(mid); padding:0px; }")
-            .arg(displayColor.name(QColor::HexRgb)));
+            .arg(displayColor.name(QColor::HexArgb)));
     };
 
     updateColorButton(m_velyntoraForegroundColor, m_viewManager->canvasResourceProvider()->fgColor());
