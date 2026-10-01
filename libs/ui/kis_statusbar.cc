@@ -338,8 +338,7 @@ void KisStatusBar::setup()
     velyntoraStatusSeparator->setVisible(false);
     addStatusBarItem(velyntoraStatusSeparator);
 
-    connect(m_velyntoraImageSizeLabel, &QLabel::visibilityChanged,
-            velyntoraStatusSeparator, &QWidget::setVisible);
+    // Separator visibility is synchronized in imageSizeChanged().
 
     connect(m_memoryReportBox, SIGNAL(clicked()), SLOT(showMemoryInfoToolTip()));
 
@@ -483,9 +482,15 @@ void KisStatusBar::imageSizeChanged()
             m_velyntoraImageSizeLabel->setText(
                 i18nc("@info:status canvas dimensions", "%1 × %2 px", image->width(), image->height()));
             m_velyntoraImageSizeLabel->setVisible(true);
+            if (QWidget *separator = m_statusBar->findChild<QWidget*>(QStringLiteral("VelyntoraStatusSeparator"))) {
+                separator->setVisible(true);
+            }
         } else {
             m_velyntoraImageSizeLabel->clear();
             m_velyntoraImageSizeLabel->setVisible(false);
+            if (QWidget *separator = m_statusBar->findChild<QWidget*>(QStringLiteral("VelyntoraStatusSeparator"))) {
+                separator->setVisible(false);
+            }
         }
     }
 }
