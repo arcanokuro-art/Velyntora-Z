@@ -38,7 +38,12 @@ void KisToolPath::resetCursorStyle()
 
 void KisToolPath::requestStrokeEnd()
 {
-    localTool()->endPathWithoutLastPoint();
+    // Line/Curve commits the currently previewed segment.  Do not use
+    // endPathWithoutLastPoint(): that behavior belongs to the legacy
+    // multi-click Bezier workflow and can discard the line endpoint.
+    if (localTool()->pathStarted()) {
+        localTool()->endPath();
+    }
 }
 
 void KisToolPath::requestStrokeCancellation()
@@ -53,6 +58,9 @@ KisPopupWidgetInterface* KisToolPath::popupWidget()
 
 void KisToolPath::mousePressEvent(KoPointerEvent *event)
 {
+    // Primary input is handled by beginPrimaryAction(). Keeping the old
+    // KoCreatePathTool mouse-press path disabled prevents accidental
+    // re-entry into multi-click Bezier construction.
     Q_UNUSED(event)
 }
 
