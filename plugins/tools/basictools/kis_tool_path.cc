@@ -165,13 +165,19 @@ void KisToolPath::endPrimaryAction(KoPointerEvent *event)
 
     mouseReleaseEvent(event);
 
-    // Velyntora Line/Curve is line-first: a normal drag creates one
-    // editable segment instead of leaving the old multi-click Bezier
-    // construction active. Curve adjustment is handled as a follow-up
-    // editing step.
-    if (localTool()->pathStarted()) {
-        localTool()->endPath();
+    // The release handler may already have committed/cancelled the delegated
+    // path. Re-check both state and editability before the final commit so a
+    // release-triggered node/layer change cannot commit into a stale target.
+    if (!localTool()->pathStarted()) {
+        return;
     }
+
+    if (!nodeEditable()) {
+        localTool()->cancelPath();
+        return;
+    }
+
+    localTool()->endPath();
 }
 
 void KisToolPath::beginPrimaryDoubleClickAction(KoPointerEvent *event)
