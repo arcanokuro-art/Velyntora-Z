@@ -11,6 +11,8 @@
 #include <QAction>
 #include <QToolTip>
 #include <QStatusBar>
+#include <QColor>
+#include <QFrame>
 
 #include <ksqueezedtextlabel.h>
 #include <klocalizedstring.h>
@@ -71,6 +73,41 @@ void KisStatusBar::setup()
     updateSelectionIcon();
 
     m_statusBar = m_viewManager->mainWindow()->statusBar();
+
+    // Velyntora Z: compact Pinta-like quick color strip.  These buttons use
+    // Krita's own canvas resource provider, so choosing a swatch changes the
+    // actual foreground painting color instead of maintaining a second color
+    // system just for the UI.
+    QWidget *quickColors = new QWidget(m_statusBar);
+    quickColors->setObjectName("VelyntoraQuickColors");
+    QHBoxLayout *quickColorsLayout = new QHBoxLayout(quickColors);
+    quickColorsLayout->setContentsMargins(4, 1, 6, 1);
+    quickColorsLayout->setSpacing(2);
+
+    const QList<QColor> velyntoraColors {
+        QColor("#000000"), QColor("#404040"), QColor("#808080"), QColor("#c0c0c0"),
+        QColor("#ffffff"), QColor("#7f0000"), QColor("#ff0000"), QColor("#ff7f00"),
+        QColor("#ffff00"), QColor("#7fff00"), QColor("#00a000"), QColor("#00ffff"),
+        QColor("#007fff"), QColor("#0000ff"), QColor("#7f00ff"), QColor("#ff00ff"),
+        QColor("#ff7fbf")
+    };
+
+    for (const QColor &color : velyntoraColors) {
+        QToolButton *swatch = new QToolButton(quickColors);
+        swatch->setFixedSize(22, 22);
+        swatch->setToolTip(color.name(QColor::HexRgb));
+        swatch->setStyleSheet(QStringLiteral(
+            "QToolButton { background:%1; border:1px solid palette(mid); padding:0px; }"
+            "QToolButton:pressed { border:2px solid palette(highlight); }").arg(color.name()));
+
+        connect(swatch, &QToolButton::clicked, this, [this, color]() {
+            KoColor paintingColor(color, KoColorSpaceRegistry::instance()->rgb8());
+            m_viewManager->canvasResourceProvider()->setFGColor(paintingColor);
+        });
+        quickColorsLayout->addWidget(swatch);
+    }
+
+    addStatusBarItem(quickColors);
 
     connect(m_selectionStatus, SIGNAL(clicked()), m_viewManager->selectionManager(), SLOT(slotToggleSelectionDecoration()));
     connect(m_viewManager->selectionManager(), SIGNAL(displaySelectionChanged()), SLOT(updateSelectionToolTip()));
