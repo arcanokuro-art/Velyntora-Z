@@ -2,7 +2,6 @@
 
 #include <QFileInfo>
 #include <QRect>
-#include <QPainter>
 
 namespace {
 QRect maskedBounds(const QImage &mask)
