@@ -322,6 +322,7 @@ void KisStatusBar::setup()
     m_velyntoraImageSizeLabel->setObjectName("VelyntoraImageSize");
     m_velyntoraImageSizeLabel->setContentsMargins(6, 0, 6, 0);
     m_velyntoraImageSizeLabel->setToolTip(i18n("Canvas size"));
+    m_velyntoraImageSizeLabel->setAccessibleName(i18n("Canvas size"));
     m_velyntoraImageSizeLabel->setAlignment(Qt::AlignCenter);
     m_velyntoraImageSizeLabel->setMinimumWidth(96);
     m_velyntoraImageSizeLabel->setMaximumWidth(150);
@@ -345,6 +346,7 @@ void KisStatusBar::setup()
     connect(m_canvasAngleSelector, SIGNAL(angleChanged(qreal)), SLOT(slotCanvasAngleSelectorAngleChanged(qreal)));
     m_canvasAngleSelector->setVisible(false);
     m_canvasAngleSelector->setToolTip(i18n("Canvas rotation"));
+    m_canvasAngleSelector->setAccessibleName(i18n("Canvas rotation"));
     m_canvasAngleSelector->setMinimumWidth(76);
     m_canvasAngleSelector->setMaximumWidth(104);
 
