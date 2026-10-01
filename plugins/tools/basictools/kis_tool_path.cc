@@ -259,7 +259,8 @@ void __KisToolPathLocalTool::addPathShape(KoPathShape* pathShape)
         }
     }
 
-    if (!KoCreatePathTool::tryMergeInPathShape(pathShape)) {
-        m_parentTool->addPathShape(pathShape, kundo2_i18n("Draw Line/Curve"));
-    }
+    // Line/Curve segments are deliberately independent shapes. Merging here
+    // would hand the new segment back to KoCreatePathTool's legacy multi-point
+    // path logic and can silently recreate Bezier-style joins.
+    m_parentTool->addPathShape(pathShape, kundo2_i18n("Draw Line/Curve"));
 }
