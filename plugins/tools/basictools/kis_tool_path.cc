@@ -245,7 +245,14 @@ void __KisToolPathLocalTool::addPathShape(KoPathShape* pathShape)
         // The automatically generated cubic handles are collinear and placed
         // at one third/two thirds of the segment. This gives Line/Curve a
         // curve-ready representation without changing what the user drew.
-        if (!qFuzzyIsNull(delta.x()) || !qFuzzyIsNull(delta.y())) {
+        if (qFuzzyIsNull(delta.x()) && qFuzzyIsNull(delta.y())) {
+            // A tap without movement is not a drawable Line/Curve. Do not
+            // leave an invisible zero-length vector object in the document.
+            delete pathShape;
+            return;
+        }
+
+        {
             // An open two-anchor curve must not carry the opposite endpoint
             // handles left over from any legacy path-tool state.
             start->removeControlPoint1();
