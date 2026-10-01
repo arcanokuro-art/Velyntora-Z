@@ -326,6 +326,7 @@ void KisStatusBar::setup()
     m_velyntoraImageSizeLabel->setMinimumWidth(96);
     m_velyntoraImageSizeLabel->setMaximumWidth(150);
     m_velyntoraImageSizeLabel->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+    m_velyntoraImageSizeLabel->setVisible(false);
     addStatusBarItem(m_velyntoraImageSizeLabel);
 
     connect(m_memoryReportBox, SIGNAL(clicked()), SLOT(showMemoryInfoToolTip()));
