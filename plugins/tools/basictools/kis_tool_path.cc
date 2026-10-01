@@ -130,10 +130,13 @@ void KisToolPath::endPrimaryAction(KoPointerEvent *event)
 
 void KisToolPath::beginPrimaryDoubleClickAction(KoPointerEvent *event)
 {
-    // A double click must not re-enter the legacy multi-point Bezier flow.
-    // Treat it as the same line-first gesture used by the primary action.
-    beginPrimaryAction(event);
-    endPrimaryAction(event);
+    // Double-click only finalizes an already active Line/Curve gesture.
+    // Starting a fresh press/release pair here can create a zero-length
+    // segment on touch devices where a double-click follows the normal tap.
+    Q_UNUSED(event);
+    if (localTool()->pathStarted()) {
+        localTool()->endPath();
+    }
 }
 
 QList<QPointer<QWidget> > KisToolPath::createOptionWidgets()
