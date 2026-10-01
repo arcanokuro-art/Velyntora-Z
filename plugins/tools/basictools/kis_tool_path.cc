@@ -7,6 +7,7 @@
 
 #include "kis_tool_path.h"
 #include <KoPathShape.h>
+#include <KoPathPoint.h>
 #include <KoCanvasBase.h>
 #include <kis_cursor.h>
 #include <KisViewManager.h>
@@ -160,6 +161,18 @@ void __KisToolPathLocalTool::paintPath(KoPathShape &pathShape, QPainter &painter
 
 void __KisToolPathLocalTool::addPathShape(KoPathShape* pathShape)
 {
+    // Velyntora Line/Curve keeps a simple two-anchor interaction.  Convert
+    // that segment to a smooth cubic internally, so the user never has to
+    // manipulate traditional Bezier handles.
+    KoPathPoint *start = pathShape->pointByIndex(KoPathPointIndex(0, 0));
+    KoPathPoint *end = pathShape->pointByIndex(KoPathPointIndex(0, 1));
+    if (start && end) {
+        const QPointF delta = end->point() - start->point();
+        start->setControlPoint2(start->point() + delta / 3.0);
+        end->setControlPoint1(end->point() - delta / 3.0);
+        pathShape->normalize();
+    }
+
     if (!KoCreatePathTool::tryMergeInPathShape(pathShape)) {
         m_parentTool->addPathShape(pathShape, kundo2_i18n("Draw Line/Curve"));
     }
