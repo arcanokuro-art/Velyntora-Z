@@ -230,10 +230,15 @@ void __KisToolPathLocalTool::addPathShape(KoPathShape* pathShape)
     KoPathPoint *end = pathShape->pointByIndex(KoPathPointIndex(0, 1));
 
     // Line/Curve owns exactly one segment. If an unexpected extra point is
-    // present (for example from a synthesized touch/mouse event), do not
-    // reinterpret a legacy multi-point path as our simple curve.
+    // present (for example from a synthesized touch/mouse event), reject the
+    // shape instead of committing a legacy multi-point path under this tool.
     KoPathPoint *extra = pathShape->pointByIndex(KoPathPointIndex(0, 2));
-    if (start && end && !extra) {
+    if (!start || !end || extra) {
+        delete pathShape;
+        return;
+    }
+
+    {
         const QPointF delta = end->point() - start->point();
 
         // Keep the initial result visually identical to a straight line.
