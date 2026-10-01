@@ -106,7 +106,17 @@ void KisToolPath::beginAlternateAction(KoPointerEvent *event, AlternateAction ac
 
 void KisToolPath::beginPrimaryAction(KoPointerEvent* event)
 {
-    if (!nodeEditable()) return;
+    if (!nodeEditable()) {
+        return;
+    }
+
+    // A Line/Curve gesture is strictly single-segment. If a stale path is
+    // somehow still active, cancel it instead of appending another anchor and
+    // recreating the old multi-click Bezier workflow.
+    if (localTool()->pathStarted()) {
+        localTool()->cancelPath();
+    }
+
     DelegatedPathTool::mousePressEvent(event);
 }
 
