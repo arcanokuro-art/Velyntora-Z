@@ -79,10 +79,40 @@ void KisStatusBar::setup()
     // actual foreground painting color instead of maintaining a second color
     // system just for the UI.
     QWidget *quickColors = new QWidget(m_statusBar);
+    m_velyntoraForegroundColor = new QToolButton(quickColors);
+    m_velyntoraBackgroundColor = new QToolButton(quickColors);
+    m_velyntoraForegroundColor->setObjectName("VelyntoraForegroundColor");
+    m_velyntoraBackgroundColor->setObjectName("VelyntoraBackgroundColor");
+    m_velyntoraForegroundColor->setFixedSize(26, 26);
+    m_velyntoraBackgroundColor->setFixedSize(26, 26);
+    m_velyntoraForegroundColor->setToolTip(i18n("Foreground color"));
+    m_velyntoraBackgroundColor->setToolTip(i18n("Background color"));
     quickColors->setObjectName("VelyntoraQuickColors");
     QHBoxLayout *quickColorsLayout = new QHBoxLayout(quickColors);
     quickColorsLayout->setContentsMargins(4, 1, 6, 1);
     quickColorsLayout->setSpacing(2);
+
+    auto updateColorButton = [](QToolButton *button, const KoColor &color) {
+        const QColor displayColor = color.toQColor();
+        button->setStyleSheet(QStringLiteral(
+            "QToolButton { background:%1; border:2px solid palette(mid); padding:0px; }")
+            .arg(displayColor.name(QColor::HexRgb)));
+    };
+
+    updateColorButton(m_velyntoraForegroundColor, m_viewManager->canvasResourceProvider()->fgColor());
+    updateColorButton(m_velyntoraBackgroundColor, m_viewManager->canvasResourceProvider()->bgColor());
+    quickColorsLayout->addWidget(m_velyntoraForegroundColor);
+    quickColorsLayout->addWidget(m_velyntoraBackgroundColor);
+    quickColorsLayout->addSpacing(4);
+
+    connect(m_viewManager->canvasResourceProvider(), &KisCanvasResourceProvider::sigFGColorChanged,
+            this, [this, updateColorButton](const KoColor &color) {
+                updateColorButton(m_velyntoraForegroundColor, color);
+            });
+    connect(m_viewManager->canvasResourceProvider(), &KisCanvasResourceProvider::sigBGColorChanged,
+            this, [this, updateColorButton](const KoColor &color) {
+                updateColorButton(m_velyntoraBackgroundColor, color);
+            });
 
     const QList<QColor> velyntoraColors {
         QColor("#000000"), QColor("#404040"), QColor("#808080"), QColor("#c0c0c0"),
