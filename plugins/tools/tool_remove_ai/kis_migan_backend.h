@@ -11,6 +11,7 @@ public:
 
 private:
     static QImage normalizeMask(const QImage &mask, const QSize &size);
+    static bool validateRuntimeOutput(const QImage &image, const QSize &expectedSize, QString *error);
 };
 
 #endif
