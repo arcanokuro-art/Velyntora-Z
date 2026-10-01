@@ -490,6 +490,36 @@ KisMainWindow::KisMainWindow(QUuid uuid)
         }
     }
 
+    // Velyntora Z drawing workspace: keep Krita's engine and actions, but
+    // start from a simpler Pinta-like arrangement.  The toolbox remains on
+    // the left while Layers and Undo History form the primary stack on the
+    // right.  Other dockers are still available from Settings > Dockers.
+    if (toolbox) {
+        addDockWidget(Qt::LeftDockWidgetArea, toolbox);
+        toolbox->setVisible(true);
+        toolbox->setMinimumWidth(92);
+    }
+
+    QDockWidget *layersDocker = d->dockWidgetsMap.value(QStringLiteral("KisLayerBox"));
+    QDockWidget *historyDocker = d->dockWidgetsMap.value(QStringLiteral("History"));
+
+    if (layersDocker) {
+        addDockWidget(Qt::RightDockWidgetArea, layersDocker);
+        layersDocker->setVisible(true);
+        layersDocker->setMinimumWidth(250);
+    }
+
+    if (historyDocker) {
+        addDockWidget(Qt::RightDockWidgetArea, historyDocker);
+        historyDocker->setVisible(true);
+        historyDocker->setMinimumWidth(250);
+
+        if (layersDocker) {
+            splitDockWidget(layersDocker, historyDocker, Qt::Vertical);
+            resizeDocks({layersDocker, historyDocker}, {2, 1}, Qt::Vertical);
+        }
+    }
+
     d->mdiArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     d->mdiArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     d->mdiArea->setTabPosition(QTabWidget::North);
