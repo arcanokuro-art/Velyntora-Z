@@ -18,6 +18,7 @@ public:
     void continuePrimaryAction(KoPointerEvent *event) override;
     void endPrimaryAction(KoPointerEvent *event) override;
     void paint(QPainter &painter, const KoViewConverter &converter) override;
+    void deactivate() override;
 
 private:
     struct Private;
