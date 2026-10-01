@@ -520,16 +520,9 @@ KisMainWindow::KisMainWindow(QUuid uuid)
         }
     }
 
-    // Keep Krita's real palette implementation, but move it to the bottom so
-    // the drawing workspace reads like Pinta: tools left, canvas center,
-    // layers/history right and colors along the bottom.
-    QDockWidget *paletteDocker = d->dockWidgetsMap.value(QStringLiteral("PaletteDocker"));
-    if (paletteDocker) {
-        addDockWidget(Qt::BottomDockWidgetArea, paletteDocker);
-        paletteDocker->setVisible(true);
-        paletteDocker->setMinimumHeight(72);
-        paletteDocker->setMaximumHeight(150);
-    }
+    // Velyntora Z uses the compact status-bar palette for drawing colors.
+    // Keep Krita's full Palette docker available from Settings > Dockers,
+    // but do not force it open in the default drawing workspace.
 
     d->mdiArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     d->mdiArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
