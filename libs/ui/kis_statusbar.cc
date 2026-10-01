@@ -294,7 +294,8 @@ void KisStatusBar::setup()
         if (!colors.contains(name) && colors.size() < maxCustomQuickColors) {
             colors.append(name);
             settings.setValue(QStringLiteral("Velyntora/CustomQuickColors"), colors);
-            quickColorsLayout->insertWidget(quickColorsLayout->indexOf(addQuickColor),
+            const int addButtonIndex = quickColorsLayout->indexOf(addQuickColor);
+            quickColorsLayout->insertWidget(qMax(0, addButtonIndex),
                                             makeColorButton(selected, true));
         } else if (!colors.contains(name)) {
             QToolTip::showText(addQuickColor->mapToGlobal(addQuickColor->rect().center()),
