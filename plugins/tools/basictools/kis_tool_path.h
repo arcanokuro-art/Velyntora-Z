@@ -27,7 +27,6 @@ public:
     void addPathShape(KoPathShape* pathShape) override;
 
     using KoCreatePathTool::createOptionWidgets;
-    using KoCreatePathTool::endPathWithoutLastPoint;
     using KoCreatePathTool::endPath;
     using KoCreatePathTool::cancelPath;
     using KoCreatePathTool::removeLastPoint;
@@ -81,7 +80,7 @@ class KisToolPathFactory : public KisToolPaintFactoryBase
 public:
     KisToolPathFactory()
             : KisToolPaintFactoryBase("KisToolPath") {
-        setToolTip(i18n("Line/Curve Tool: draw a line, then adjust it into a curve."));
+        setToolTip(i18n("Line/Curve Tool: draw a straight segment, then shape it as a curve."));
         setSection(ToolBoxSection::Shape);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
         setIconName(koIconNameCStr("krita_draw_path"));
