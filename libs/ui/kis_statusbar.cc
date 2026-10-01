@@ -273,6 +273,7 @@ void KisStatusBar::setup()
     addQuickColor->setText(QStringLiteral("+"));
     addQuickColor->setFixedSize(22, 22);
     addQuickColor->setToolTip(i18n("Add a custom color"));
+    addQuickColor->setAccessibleName(i18n("Add a custom quick color"));
     connect(addQuickColor, &QToolButton::clicked, this,
             [this, quickColorsLayout, addQuickColor, makeColorButton]() {
         const QColor initial = m_viewManager->canvasResourceProvider()->fgColor().toQColor();
