@@ -180,6 +180,15 @@ void KisToolPath::endPrimaryAction(KoPointerEvent *event)
     localTool()->endPath();
 }
 
+void KisToolPath::deactivate()
+{
+    if (localTool()->pathStarted()) {
+        localTool()->cancelPath();
+    }
+
+    DelegatedPathTool::deactivate();
+}
+
 void KisToolPath::beginPrimaryDoubleClickAction(KoPointerEvent *event)
 {
     // Double-click only finalizes an already active Line/Curve gesture.
