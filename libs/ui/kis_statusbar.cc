@@ -335,7 +335,11 @@ void KisStatusBar::setup()
     velyntoraStatusSeparator->setFrameShape(QFrame::VLine);
     velyntoraStatusSeparator->setFrameShadow(QFrame::Sunken);
     velyntoraStatusSeparator->setFixedHeight(20);
+    velyntoraStatusSeparator->setVisible(false);
     addStatusBarItem(velyntoraStatusSeparator);
+
+    connect(m_velyntoraImageSizeLabel, &QLabel::visibilityChanged,
+            velyntoraStatusSeparator, &QWidget::setVisible);
 
     connect(m_memoryReportBox, SIGNAL(clicked()), SLOT(showMemoryInfoToolTip()));
 
