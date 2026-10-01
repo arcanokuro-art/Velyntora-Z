@@ -261,7 +261,7 @@ void KisStatusBar::setup()
         settings.setValue(QStringLiteral("Velyntora/CustomQuickColors"), normalizedCustomColors);
     }
     savedCustomColors = normalizedCustomColors;
-    for (const QString &name : savedCustomColors) {
+    for (const QString &name : std::as_const(savedCustomColors)) {
         const QColor color(name);
         if (color.isValid()) {
             quickColorsLayout->addWidget(makeColorButton(color, true));
