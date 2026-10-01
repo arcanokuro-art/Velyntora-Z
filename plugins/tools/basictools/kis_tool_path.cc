@@ -103,6 +103,13 @@ bool KisToolPath::eventFilter(QObject *obj, QEvent *event)
 }
 
 void KisToolPath::beginAlternateAction(KoPointerEvent *event, AlternateAction action) {
+    // Do not let a secondary mouse/stylus/touch action re-enter the inherited
+    // multi-point path state while a Line/Curve segment is being created.
+    if (localTool()->pathStarted()) {
+        event->accept();
+        return;
+    }
+
     DelegatedPathTool::beginAlternateAction(event, action);
     if (!nodeEditable()) return;
 
