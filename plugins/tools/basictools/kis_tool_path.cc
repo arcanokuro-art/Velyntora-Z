@@ -52,10 +52,13 @@ void KisToolPath::requestStrokeEnd()
 void KisToolPath::requestStrokeCancellation()
 {
     // Cancellation is idempotent for Line/Curve: only touch the delegated
-    // path state while a gesture actually exists.
-    if (localTool()->pathStarted()) {
-        localTool()->cancelPath();
+    // path state while a gesture actually exists. Ignore cancellation after
+    // commit so delayed Android/stylus events cannot affect the next segment.
+    if (!localTool()->pathStarted()) {
+        return;
     }
+
+    localTool()->cancelPath();
 }
 
 KisPopupWidgetInterface* KisToolPath::popupWidget()
