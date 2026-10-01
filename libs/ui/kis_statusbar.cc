@@ -236,8 +236,13 @@ void KisStatusBar::setup()
     // be removed with the platform context-menu gesture (right click on
     // desktop, long-press where Qt exposes it on touch platforms).
     QSettings settings;
-    const QStringList savedCustomColors =
+    QStringList savedCustomColors =
         settings.value(QStringLiteral("Velyntora/CustomQuickColors")).toStringList();
+    constexpr int maxCustomQuickColors = 8;
+    if (savedCustomColors.size() > maxCustomQuickColors) {
+        savedCustomColors = savedCustomColors.mid(0, maxCustomQuickColors);
+        settings.setValue(QStringLiteral("Velyntora/CustomQuickColors"), savedCustomColors);
+    }
     for (const QString &name : savedCustomColors) {
         const QColor color(name);
         if (color.isValid()) {
@@ -267,7 +272,6 @@ void KisStatusBar::setup()
         // Keep the compact status bar bounded on phones/tablets.  A small
         // persistent custom palette is enough here; Krita's full Palette
         // docker remains available for larger collections.
-        constexpr int maxCustomQuickColors = 8;
         if (!colors.contains(name) && colors.size() < maxCustomQuickColors) {
             colors.append(name);
             settings.setValue(QStringLiteral("Velyntora/CustomQuickColors"), colors);
