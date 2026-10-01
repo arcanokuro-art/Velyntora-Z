@@ -169,9 +169,11 @@ void KisStatusBar::setup()
         QToolButton *swatch = new QToolButton(quickColors);
         swatch->setFixedSize(22, 22);
         swatch->setToolTip(color.name(QColor::HexArgb));
+        swatch->setAccessibleName(i18n("Quick color %1", color.name(QColor::HexArgb)));
         swatch->setStyleSheet(QStringLiteral(
             "QToolButton { background:%1; border:1px solid palette(mid); padding:0px; }"
-            "QToolButton:pressed { border:2px solid palette(highlight); }").arg(color.name()));
+            "QToolButton:pressed { border:2px solid palette(highlight); }")
+            .arg(color.name(QColor::HexArgb)));
 
         connect(swatch, &QToolButton::clicked, this, [this, color]() {
             m_viewManager->canvasResourceProvider()->setFGColor(
