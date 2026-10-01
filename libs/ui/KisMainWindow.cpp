@@ -520,6 +520,17 @@ KisMainWindow::KisMainWindow(QUuid uuid)
         }
     }
 
+    // Keep Krita's real palette implementation, but move it to the bottom so
+    // the drawing workspace reads like Pinta: tools left, canvas center,
+    // layers/history right and colors along the bottom.
+    QDockWidget *paletteDocker = d->dockWidgetsMap.value(QStringLiteral("PaletteDocker"));
+    if (paletteDocker) {
+        addDockWidget(Qt::BottomDockWidgetArea, paletteDocker);
+        paletteDocker->setVisible(true);
+        paletteDocker->setMinimumHeight(72);
+        paletteDocker->setMaximumHeight(150);
+    }
+
     d->mdiArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     d->mdiArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     d->mdiArea->setTabPosition(QTabWidget::North);
