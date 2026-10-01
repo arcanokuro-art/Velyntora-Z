@@ -513,17 +513,23 @@ KisMainWindow::KisMainWindow(QUuid uuid)
     if (layersDocker) {
         addDockWidget(Qt::RightDockWidgetArea, layersDocker);
         layersDocker->setVisible(true);
-        layersDocker->setMinimumWidth(250);
+        layersDocker->setMinimumWidth(220);
+        layersDocker->setMaximumWidth(340);
+        layersDocker->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
     }
 
     if (historyDocker) {
         addDockWidget(Qt::RightDockWidgetArea, historyDocker);
         historyDocker->setVisible(true);
-        historyDocker->setMinimumWidth(250);
+        historyDocker->setMinimumWidth(220);
+        historyDocker->setMaximumWidth(340);
+        historyDocker->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
 
         if (layersDocker) {
             splitDockWidget(layersDocker, historyDocker, Qt::Vertical);
-            resizeDocks({layersDocker, historyDocker}, {2, 1}, Qt::Vertical);
+            // Layers are the primary panel while History stays compact,
+            // matching the Velyntora Z drawing reference.
+            resizeDocks({layersDocker, historyDocker}, {3, 2}, Qt::Vertical);
         }
     }
 
