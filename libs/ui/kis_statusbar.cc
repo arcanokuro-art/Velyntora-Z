@@ -339,6 +339,12 @@ void KisStatusBar::setup()
 
     connect(m_canvasAngleSelector, SIGNAL(angleChanged(qreal)), SLOT(slotCanvasAngleSelectorAngleChanged(qreal)));
     m_canvasAngleSelector->setVisible(false);
+
+    // Keep the compact drawing bar usable on Android and narrow windows.
+    // Fixed swatches keep their touch targets while the palette itself yields
+    // space before Krita's zoom/status controls are squeezed.
+    quickColors->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
+    quickColors->setMaximumHeight(36);
 }
 
 KisStatusBar::~KisStatusBar()
