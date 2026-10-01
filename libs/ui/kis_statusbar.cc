@@ -211,11 +211,16 @@ void KisStatusBar::setup()
                     qOverload<>(&QTimer::start));
             connect(swatch, &QToolButton::released, holdTimer, &QTimer::stop);
             connect(holdTimer, &QTimer::timeout, this, [swatch, removeCustomColor]() {
+                // A long press must not also activate the swatch when the
+                // finger is released after closing the context menu.
+                swatch->setDown(false);
+                swatch->blockSignals(true);
                 QMenu menu;
                 QAction *remove = menu.addAction(i18n("Remove custom color"));
                 if (menu.exec(swatch->mapToGlobal(swatch->rect().center())) == remove) {
                     removeCustomColor();
                 }
+                swatch->blockSignals(false);
             });
         }
         return swatch;
