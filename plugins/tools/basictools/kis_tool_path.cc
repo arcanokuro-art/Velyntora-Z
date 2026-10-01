@@ -71,7 +71,9 @@ void KisToolPath::mousePressEvent(KoPointerEvent *event)
     // Primary input is handled by beginPrimaryAction(). Keeping the old
     // KoCreatePathTool mouse-press path disabled prevents accidental
     // re-entry into multi-click Bezier construction.
-    Q_UNUSED(event)
+    // Android may synthesize a mouse press after a touch press; consume this
+    // raw entry point so one physical gesture still creates exactly one segment.
+    Q_UNUSED(event);
 }
 
 // Install an event filter to catch right-click events.
