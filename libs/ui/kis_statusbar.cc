@@ -217,10 +217,12 @@ void KisStatusBar::setup()
                 const bool signalsWereBlocked = swatch->blockSignals(true);
                 QMenu menu;
                 QAction *remove = menu.addAction(i18n("Remove custom color"));
-                if (menu.exec(swatch->mapToGlobal(swatch->rect().center())) == remove) {
+                const bool shouldRemove =
+                    menu.exec(swatch->mapToGlobal(swatch->rect().center())) == remove;
+                swatch->blockSignals(signalsWereBlocked);
+                if (shouldRemove) {
                     removeCustomColor();
                 }
-                swatch->blockSignals(signalsWereBlocked);
             });
         }
         return swatch;
