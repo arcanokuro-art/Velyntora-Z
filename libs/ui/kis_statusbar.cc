@@ -14,6 +14,8 @@
 #include <QColor>
 #include <QFrame>
 #include <QColorDialog>
+#include <QSettings>
+#include <QMenu>
 
 #include <ksqueezedtextlabel.h>
 #include <klocalizedstring.h>
@@ -147,7 +149,7 @@ void KisStatusBar::setup()
         QColor("#ff7fbf")
     };
 
-    for (const QColor &color : velyntoraColors) {
+    auto makeColorButton = [this, quickColors](const QColor &color, bool removable) {
         QToolButton *swatch = new QToolButton(quickColors);
         swatch->setFixedSize(22, 22);
         swatch->setToolTip(color.name(QColor::HexRgb));
@@ -156,26 +158,72 @@ void KisStatusBar::setup()
             "QToolButton:pressed { border:2px solid palette(highlight); }").arg(color.name()));
 
         connect(swatch, &QToolButton::clicked, this, [this, color]() {
-            KoColor paintingColor(color, KoColorSpaceRegistry::instance()->rgb8());
-            m_viewManager->canvasResourceProvider()->setFGColor(paintingColor);
+            m_viewManager->canvasResourceProvider()->setFGColor(
+                KoColor(color, KoColorSpaceRegistry::instance()->rgb8()));
         });
-        quickColorsLayout->addWidget(swatch);
+
+        if (removable) {
+            swatch->setContextMenuPolicy(Qt::CustomContextMenu);
+            connect(swatch, &QWidget::customContextMenuRequested, this,
+                    [swatch, color](const QPoint &pos) {
+                QMenu menu;
+                QAction *remove = menu.addAction(i18n("Remove custom color"));
+                if (menu.exec(swatch->mapToGlobal(pos)) == remove) {
+                    QSettings settings;
+                    QStringList colors = settings.value(QStringLiteral("Velyntora/CustomQuickColors")).toStringList();
+                    colors.removeAll(color.name(QColor::HexRgb));
+                    settings.setValue(QStringLiteral("Velyntora/CustomQuickColors"), colors);
+                    swatch->deleteLater();
+                }
+            });
+        }
+        return swatch;
+    };
+
+    for (const QColor &color : velyntoraColors) {
+        quickColorsLayout->addWidget(makeColorButton(color, false));
+    }
+
+    // User colors are persistent. They are restored on every launch and can
+    // be removed with the platform context-menu gesture (right click on
+    // desktop, long-press where Qt exposes it on touch platforms).
+    QSettings settings;
+    const QStringList savedCustomColors =
+        settings.value(QStringLiteral("Velyntora/CustomQuickColors")).toStringList();
+    for (const QString &name : savedCustomColors) {
+        const QColor color(name);
+        if (color.isValid()) {
+            quickColorsLayout->addWidget(makeColorButton(color, true));
+        }
     }
 
     QToolButton *addQuickColor = new QToolButton(quickColors);
     addQuickColor->setObjectName("VelyntoraAddQuickColor");
     addQuickColor->setText(QStringLiteral("+"));
     addQuickColor->setFixedSize(22, 22);
-    addQuickColor->setToolTip(i18n("Choose a custom color"));
-    connect(addQuickColor, &QToolButton::clicked, this, [this]() {
+    addQuickColor->setToolTip(i18n("Add a custom color"));
+    connect(addQuickColor, &QToolButton::clicked, this,
+            [this, quickColorsLayout, addQuickColor, makeColorButton]() {
         const QColor initial = m_viewManager->canvasResourceProvider()->fgColor().toQColor();
         const QColor selected = QColorDialog::getColor(initial, m_viewManager->mainWindow(),
-                                                       i18n("Choose custom color"),
+                                                       i18n("Add custom color"),
                                                        QColorDialog::ShowAlphaChannel);
-        if (selected.isValid()) {
-            m_viewManager->canvasResourceProvider()->setFGColor(
-                KoColor(selected, KoColorSpaceRegistry::instance()->rgb8()));
+        if (!selected.isValid()) {
+            return;
         }
+
+        const QString name = selected.name(QColor::HexRgb);
+        QSettings settings;
+        QStringList colors = settings.value(QStringLiteral("Velyntora/CustomQuickColors")).toStringList();
+        if (!colors.contains(name)) {
+            colors.append(name);
+            settings.setValue(QStringLiteral("Velyntora/CustomQuickColors"), colors);
+            quickColorsLayout->insertWidget(quickColorsLayout->indexOf(addQuickColor),
+                                            makeColorButton(selected, true));
+        }
+
+        m_viewManager->canvasResourceProvider()->setFGColor(
+            KoColor(selected, KoColorSpaceRegistry::instance()->rgb8()));
     });
     quickColorsLayout->addWidget(addQuickColor);
 
