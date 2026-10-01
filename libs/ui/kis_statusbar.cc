@@ -263,11 +263,20 @@ void KisStatusBar::setup()
         const QString name = selected.name(QColor::HexArgb);
         QSettings settings;
         QStringList colors = settings.value(QStringLiteral("Velyntora/CustomQuickColors")).toStringList();
-        if (!colors.contains(name)) {
+
+        // Keep the compact status bar bounded on phones/tablets.  A small
+        // persistent custom palette is enough here; Krita's full Palette
+        // docker remains available for larger collections.
+        constexpr int maxCustomQuickColors = 8;
+        if (!colors.contains(name) && colors.size() < maxCustomQuickColors) {
             colors.append(name);
             settings.setValue(QStringLiteral("Velyntora/CustomQuickColors"), colors);
             quickColorsLayout->insertWidget(quickColorsLayout->indexOf(addQuickColor),
                                             makeColorButton(selected, true));
+        } else if (!colors.contains(name)) {
+            QToolTip::showText(addQuickColor->mapToGlobal(addQuickColor->rect().center()),
+                               i18n("Quick colors are full. Remove a custom color before adding another."),
+                               addQuickColor);
         }
 
         m_viewManager->canvasResourceProvider()->setFGColor(
