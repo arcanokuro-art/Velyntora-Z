@@ -2,6 +2,7 @@
 
 #include <QFileInfo>
 #include <QRect>
+#include <QPainter>
 
 namespace {
 QRect maskedBounds(const QImage &mask)
@@ -111,10 +112,8 @@ KisRemoveAIBackend::Result KisMiganBackend::run(const Request &request)
     }
 
     // Runtime hook: feed source512 + mask512 into the packaged MI-GAN model.
-    // When inference succeeds, the runtime must return RGBA at inferenceSize.
-    // This backend will then scale that patch back to sourceRect.size() before
-    // the tool composites only masked pixels into the active paint layer.
-    // Do not fabricate a result: success is set only after real inference.
+    // When inference succeeds it must return RGBA at inferenceSize.
+    // Never fabricate output while the runtime is unavailable.
     result.error = QStringLiteral("MI-GAN inference hook is not connected yet.");
     return result;
 }
