@@ -85,6 +85,14 @@ bool KisToolPath::eventFilter(QObject *obj, QEvent *event)
     if (!localTool()->pathStarted()) {
         return false;
     }
+
+    // If the target becomes locked/non-editable before a queued input event
+    // is delivered, tear down the live segment immediately. This prevents
+    // right-click/tablet events from operating on stale path state.
+    if (!nodeEditable()) {
+        localTool()->cancelPath();
+        return true;
+    }
     if (event->type() == QEvent::MouseButtonPress ||
             event->type() == QEvent::MouseButtonDblClick) {
         QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
