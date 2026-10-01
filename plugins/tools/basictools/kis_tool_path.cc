@@ -168,9 +168,18 @@ void __KisToolPathLocalTool::addPathShape(KoPathShape* pathShape)
     KoPathPoint *end = pathShape->pointByIndex(KoPathPointIndex(0, 1));
     if (start && end) {
         const QPointF delta = end->point() - start->point();
-        start->setControlPoint2(start->point() + delta / 3.0);
-        end->setControlPoint1(end->point() - delta / 3.0);
-        pathShape->normalize();
+
+        // Keep the initial result visually identical to a straight line.
+        // The automatically generated cubic handles are collinear and placed
+        // at one third/two thirds of the segment. This gives Line/Curve a
+        // curve-ready representation without changing what the user drew.
+        if (!qFuzzyIsNull(delta.x()) || !qFuzzyIsNull(delta.y())) {
+            start->setControlPoint2(start->point() + delta / 3.0);
+            end->setControlPoint1(end->point() - delta / 3.0);
+            start->setProperty(KoPathPoint::IsSmooth);
+            end->setProperty(KoPathPoint::IsSmooth);
+            pathShape->normalize();
+        }
     }
 
     if (!KoCreatePathTool::tryMergeInPathShape(pathShape)) {
