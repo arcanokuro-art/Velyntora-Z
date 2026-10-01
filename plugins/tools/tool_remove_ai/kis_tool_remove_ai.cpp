@@ -5,6 +5,8 @@
 #include <kis_painter.h>
 #include <kis_paint_device.h>
 #include <kis_algebra_2d.h>
+#include <kis_paint_layer.h>
+#include <KisViewManager.h>
 
 struct KisToolRemoveAI::Private {
     KisPaintDeviceSP mask;
@@ -21,6 +23,7 @@ KisToolRemoveAI::KisToolRemoveAI(KoCanvasBase *canvas)
     m_d->painter.begin(m_d->mask);
     m_d->painter.setPaintColor(KoColor(Qt::white, m_d->mask->colorSpace()));
     m_d->painter.setFillStyle(KisPainter::FillStyleForegroundColor);
+    setSupportOutline(true);
 }
 
 KisToolRemoveAI::~KisToolRemoveAI()
@@ -42,9 +45,17 @@ void KisToolRemoveAI::beginPrimaryAction(KoPointerEvent *event)
 {
     if (currentNode().isNull() || !currentNode()->inherits("KisPaintLayer") ||
         nodePaintAbility() != NodePaintAbility::PAINT) {
+        if (KisCanvas2 *kritaCanvas = dynamic_cast<KisCanvas2 *>(canvas())) {
+            kritaCanvas->viewManager()->showFloatingMessage(
+                i18n("Select a paint layer to use Remove"), QIcon(), 2000);
+        }
         event->ignore();
         return;
     }
+
+    // Every new gesture starts a fresh inference mask. The source pixels are
+    // not modified while the user is only marking an object for removal.
+    m_d->mask->clear();
     addMaskPoint(event);
     setMode(KisTool::PAINT_MODE);
 }
@@ -64,6 +75,8 @@ void KisToolRemoveAI::endPrimaryAction(KoPointerEvent *event)
     // Integration boundary: the image + this binary mask will be passed to
     // the local inpainting backend (MI-GAN 512). Keep the mask alive until
     // inference succeeds so a failed/cancelled run cannot damage the layer.
+    // The backend will own crop/resize-to-512 and compositing; the tool owns
+    // only user interaction and mask creation.
 }
 
 void KisToolRemoveAI::paint(QPainter &painter, const KoViewConverter &converter)
