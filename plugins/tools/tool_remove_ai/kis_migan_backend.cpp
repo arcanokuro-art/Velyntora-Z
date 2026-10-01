@@ -91,6 +91,8 @@ KisRemoveAIBackend::Result KisMiganBackend::run(const Request &request)
         return result;
     }
 
+    result.sourceRect = roi;
+
     const QSize inferenceSize(request.modelSize, request.modelSize);
     const QImage source512 = request.source.copy(roi)
                                            .convertToFormat(QImage::Format_RGBA8888)
@@ -109,6 +111,9 @@ KisRemoveAIBackend::Result KisMiganBackend::run(const Request &request)
     }
 
     // Runtime hook: feed source512 + mask512 into the packaged MI-GAN model.
+    // When inference succeeds, the runtime must return RGBA at inferenceSize.
+    // This backend will then scale that patch back to sourceRect.size() before
+    // the tool composites only masked pixels into the active paint layer.
     // Do not fabricate a result: success is set only after real inference.
     result.error = QStringLiteral("MI-GAN inference hook is not connected yet.");
     return result;
