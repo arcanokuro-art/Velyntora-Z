@@ -223,52 +223,34 @@ void __KisToolPathLocalTool::paintPath(KoPathShape &pathShape, QPainter &painter
 
 void __KisToolPathLocalTool::addPathShape(KoPathShape* pathShape)
 {
-    // Velyntora Line/Curve keeps a simple two-anchor interaction.  Convert
-    // that segment to a smooth cubic internally, so the user never has to
-    // manipulate traditional Bezier handles.
+    // Velyntora Line/Curve owns exactly one two-anchor segment.
     KoPathPoint *start = pathShape->pointByIndex(KoPathPointIndex(0, 0));
     KoPathPoint *end = pathShape->pointByIndex(KoPathPointIndex(0, 1));
-
-    // Line/Curve owns exactly one segment. If an unexpected extra point is
-    // present (for example from a synthesized touch/mouse event), reject the
-    // shape instead of committing a legacy multi-point path under this tool.
     KoPathPoint *extra = pathShape->pointByIndex(KoPathPointIndex(0, 2));
+
     if (!start || !end || extra) {
         delete pathShape;
         return;
     }
 
     const QPointF delta = end->point() - start->point();
+    if (qFuzzyIsNull(delta.x()) && qFuzzyIsNull(delta.y())) {
+        delete pathShape;
+        return;
+    }
 
-        // Keep the initial result visually identical to a straight line.
-        // The automatically generated cubic handles are collinear and placed
-        // at one third/two thirds of the segment. This gives Line/Curve a
-        // curve-ready representation without changing what the user drew.
-        if (qFuzzyIsNull(delta.x()) && qFuzzyIsNull(delta.y())) {
-            // A tap without movement is not a drawable Line/Curve. Do not
-            // leave an invisible zero-length vector object in the document.
-            delete pathShape;
-            return;
-        }
+    // Keep the first result visually straight while storing it as a cubic
+    // that can later be shaped without exposing traditional Bezier handles.
+    start->removeControlPoint1();
+    end->removeControlPoint2();
+    start->unsetProperty(KoPathPoint::IsSmooth);
+    start->unsetProperty(KoPathPoint::IsSymmetric);
+    end->unsetProperty(KoPathPoint::IsSmooth);
+    end->unsetProperty(KoPathPoint::IsSymmetric);
+    start->setControlPoint2(start->point() + delta / 3.0);
+    end->setControlPoint1(end->point() - delta / 3.0);
+    pathShape->normalize();
 
-        // An open two-anchor curve must not carry the opposite endpoint
-            // handles left over from any legacy path-tool state.
-            start->removeControlPoint1();
-            end->removeControlPoint2();
-            start->unsetProperty(KoPathPoint::IsSmooth);
-            start->unsetProperty(KoPathPoint::IsSymmetric);
-            end->unsetProperty(KoPathPoint::IsSmooth);
-            end->unsetProperty(KoPathPoint::IsSymmetric);
-            start->setControlPoint2(start->point() + delta / 3.0);
-            end->setControlPoint1(end->point() - delta / 3.0);
-
-            // Endpoints only own one active handle on an open Line/Curve.
-            // Do not mark them IsSmooth: that flag describes a join with
-            // incoming and outgoing tangents and is misleading at endpoints.
-        pathShape->normalize();
-
-    // Line/Curve segments are deliberately independent shapes. Merging here
-    // would hand the new segment back to KoCreatePathTool's legacy multi-point
-    // path logic and can silently recreate Bezier-style joins.
+    // Never merge into KoCreatePathTool's legacy multi-point path workflow.
     m_parentTool->addPathShape(pathShape, kundo2_i18n("Draw Line/Curve"));
 }
