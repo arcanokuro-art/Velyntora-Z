@@ -168,7 +168,7 @@ void KisStatusBar::setup()
     auto makeColorButton = [this, quickColors](const QColor &color, bool removable) {
         QToolButton *swatch = new QToolButton(quickColors);
         swatch->setFixedSize(22, 22);
-        swatch->setToolTip(color.name(QColor::HexRgb));
+        swatch->setToolTip(color.name(QColor::HexArgb));
         swatch->setStyleSheet(QStringLiteral(
             "QToolButton { background:%1; border:1px solid palette(mid); padding:0px; }"
             "QToolButton:pressed { border:2px solid palette(highlight); }").arg(color.name()));
@@ -183,7 +183,7 @@ void KisStatusBar::setup()
                 QSettings settings;
                 QStringList colors =
                     settings.value(QStringLiteral("Velyntora/CustomQuickColors")).toStringList();
-                colors.removeAll(color.name(QColor::HexRgb));
+                colors.removeAll(color.name(QColor::HexArgb));
                 settings.setValue(QStringLiteral("Velyntora/CustomQuickColors"), colors);
                 swatch->deleteLater();
             };
@@ -249,7 +249,7 @@ void KisStatusBar::setup()
             return;
         }
 
-        const QString name = selected.name(QColor::HexRgb);
+        const QString name = selected.name(QColor::HexArgb);
         QSettings settings;
         QStringList colors = settings.value(QStringLiteral("Velyntora/CustomQuickColors")).toStringList();
         if (!colors.contains(name)) {
