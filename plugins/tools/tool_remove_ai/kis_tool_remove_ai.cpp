@@ -31,6 +31,16 @@ KisToolRemoveAI::~KisToolRemoveAI()
     m_d->painter.end();
 }
 
+void KisToolRemoveAI::deactivate()
+{
+    if (m_d->mask) {
+        m_d->mask->clear();
+    }
+    m_d->outline = QPainterPath();
+    setMode(KisTool::HOVER_MODE);
+    KisToolPaint::deactivate();
+}
+
 void KisToolRemoveAI::addMaskPoint(KoPointerEvent *event)
 {
     const QPointF p = currentImage()->documentToPixel(event->point);
