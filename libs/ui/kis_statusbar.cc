@@ -345,6 +345,13 @@ void KisStatusBar::setup()
     // space before Krita's zoom/status controls are squeezed.
     quickColors->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
     quickColors->setMaximumHeight(36);
+
+    // Keep the compact strip visually quiet like Pinta: no extra container
+    // background or frame, only the color controls themselves.
+    quickColors->setAttribute(Qt::WA_StyledBackground, false);
+    quickColors->setStyleSheet(QStringLiteral(
+        "#VelyntoraQuickColors { background: transparent; border: none; }"
+        "#VelyntoraAddQuickColor { font-weight: bold; padding: 0px; }"));
 }
 
 KisStatusBar::~KisStatusBar()
