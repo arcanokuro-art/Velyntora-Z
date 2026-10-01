@@ -50,6 +50,25 @@ QImage KisMiganBackend::normalizeMask(const QImage &mask, const QSize &size)
     return normalized;
 }
 
+bool KisMiganBackend::validateRuntimeOutput(const QImage &image, const QSize &expectedSize, QString *error)
+{
+    if (image.isNull()) {
+        if (error) *error = QStringLiteral("MI-GAN returned an empty image.");
+        return false;
+    }
+    if (image.size() != expectedSize) {
+        if (error) *error = QStringLiteral("MI-GAN returned an unexpected image size.");
+        return false;
+    }
+    if (image.format() != QImage::Format_RGBA8888 &&
+        image.format() != QImage::Format_ARGB32 &&
+        image.format() != QImage::Format_ARGB32_Premultiplied) {
+        if (error) *error = QStringLiteral("MI-GAN returned an unsupported pixel format.");
+        return false;
+    }
+    return true;
+}
+
 bool KisMiganBackend::isAvailable() const
 {
     // The Android model asset/runtime is connected in the next integration
