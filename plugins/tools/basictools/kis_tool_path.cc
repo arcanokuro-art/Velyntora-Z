@@ -201,6 +201,16 @@ void KisToolPath::beginPrimaryDoubleClickAction(KoPointerEvent *event)
 QList<QPointer<QWidget> > KisToolPath::createOptionWidgets()
 {
     QList<QPointer<QWidget> > widgets = DelegatedPathTool::createOptionWidgets();
+
+    // Line/Curve intentionally has no exposed Bezier-node editing stage.
+    // Keep the inherited shape/brush options, but make the simplified
+    // interaction explicit to assistive UI and future maintainers.
+    for (const QPointer<QWidget> &widget : widgets) {
+        if (widget) {
+            widget->setProperty("velyntoraLineCurve", true);
+        }
+    }
+
     return widgets;
 }
 
