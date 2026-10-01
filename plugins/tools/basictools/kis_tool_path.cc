@@ -39,12 +39,14 @@ void KisToolPath::resetCursorStyle()
 
 void KisToolPath::requestStrokeEnd()
 {
-    // Line/Curve commits the currently previewed segment.  Do not use
+    // Line/Curve commits the currently previewed segment. Do not use
     // endPathWithoutLastPoint(): that behavior belongs to the legacy
     // multi-click Bezier workflow and can discard the line endpoint.
-    if (localTool()->pathStarted()) {
-        localTool()->endPath();
+    if (!nodeEditable() || !localTool()->pathStarted()) {
+        return;
     }
+
+    localTool()->endPath();
 }
 
 void KisToolPath::requestStrokeCancellation()
