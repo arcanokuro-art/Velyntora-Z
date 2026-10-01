@@ -13,6 +13,7 @@
 #include <QStatusBar>
 #include <QColor>
 #include <QFrame>
+#include <QColorDialog>
 
 #include <ksqueezedtextlabel.h>
 #include <klocalizedstring.h>
@@ -105,6 +106,30 @@ void KisStatusBar::setup()
     quickColorsLayout->addWidget(m_velyntoraBackgroundColor);
     quickColorsLayout->addSpacing(4);
 
+    // Clicking either large swatch opens an unrestricted color picker.
+    // The chosen QColor is converted into Krita's RGB8 KoColor and written
+    // back through the normal canvas resource provider.
+    connect(m_velyntoraForegroundColor, &QToolButton::clicked, this, [this]() {
+        const QColor initial = m_viewManager->canvasResourceProvider()->fgColor().toQColor();
+        const QColor selected = QColorDialog::getColor(initial, m_viewManager->mainWindow(),
+                                                       i18n("Choose foreground color"),
+                                                       QColorDialog::ShowAlphaChannel);
+        if (selected.isValid()) {
+            m_viewManager->canvasResourceProvider()->setFGColor(
+                KoColor(selected, KoColorSpaceRegistry::instance()->rgb8()));
+        }
+    });
+    connect(m_velyntoraBackgroundColor, &QToolButton::clicked, this, [this]() {
+        const QColor initial = m_viewManager->canvasResourceProvider()->bgColor().toQColor();
+        const QColor selected = QColorDialog::getColor(initial, m_viewManager->mainWindow(),
+                                                       i18n("Choose background color"),
+                                                       QColorDialog::ShowAlphaChannel);
+        if (selected.isValid()) {
+            m_viewManager->canvasResourceProvider()->setBGColor(
+                KoColor(selected, KoColorSpaceRegistry::instance()->rgb8()));
+        }
+    });
+
     connect(m_viewManager->canvasResourceProvider(), &KisCanvasResourceProvider::sigFGColorChanged,
             this, [this, updateColorButton](const KoColor &color) {
                 updateColorButton(m_velyntoraForegroundColor, color);
@@ -136,6 +161,23 @@ void KisStatusBar::setup()
         });
         quickColorsLayout->addWidget(swatch);
     }
+
+    QToolButton *addQuickColor = new QToolButton(quickColors);
+    addQuickColor->setObjectName("VelyntoraAddQuickColor");
+    addQuickColor->setText(QStringLiteral("+"));
+    addQuickColor->setFixedSize(22, 22);
+    addQuickColor->setToolTip(i18n("Choose a custom color"));
+    connect(addQuickColor, &QToolButton::clicked, this, [this]() {
+        const QColor initial = m_viewManager->canvasResourceProvider()->fgColor().toQColor();
+        const QColor selected = QColorDialog::getColor(initial, m_viewManager->mainWindow(),
+                                                       i18n("Choose custom color"),
+                                                       QColorDialog::ShowAlphaChannel);
+        if (selected.isValid()) {
+            m_viewManager->canvasResourceProvider()->setFGColor(
+                KoColor(selected, KoColorSpaceRegistry::instance()->rgb8()));
+        }
+    });
+    quickColorsLayout->addWidget(addQuickColor);
 
     addStatusBarItem(quickColors);
 
