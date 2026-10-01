@@ -322,6 +322,10 @@ void KisStatusBar::setup()
     m_velyntoraImageSizeLabel->setObjectName("VelyntoraImageSize");
     m_velyntoraImageSizeLabel->setContentsMargins(6, 0, 6, 0);
     m_velyntoraImageSizeLabel->setToolTip(i18n("Canvas size"));
+    m_velyntoraImageSizeLabel->setAlignment(Qt::AlignCenter);
+    m_velyntoraImageSizeLabel->setMinimumWidth(96);
+    m_velyntoraImageSizeLabel->setMaximumWidth(150);
+    m_velyntoraImageSizeLabel->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
     addStatusBarItem(m_velyntoraImageSizeLabel);
 
     connect(m_memoryReportBox, SIGNAL(clicked()), SLOT(showMemoryInfoToolTip()));
