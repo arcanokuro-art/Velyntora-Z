@@ -20,6 +20,8 @@
 #include <QGridLayout>
 #include <QLabel>
 
+#include <utility>
+
 #include <ksqueezedtextlabel.h>
 #include <klocalizedstring.h>
 #include <kformat.h>
@@ -239,10 +241,24 @@ void KisStatusBar::setup()
     QStringList savedCustomColors =
         settings.value(QStringLiteral("Velyntora/CustomQuickColors")).toStringList();
     constexpr int maxCustomQuickColors = 8;
-    if (savedCustomColors.size() > maxCustomQuickColors) {
-        savedCustomColors = savedCustomColors.mid(0, maxCustomQuickColors);
-        settings.setValue(QStringLiteral("Velyntora/CustomQuickColors"), savedCustomColors);
+
+    // Normalize old settings as well: discard invalid entries and duplicates
+    // before applying the compact mobile limit.
+    QStringList normalizedCustomColors;
+    for (const QString &name : std::as_const(savedCustomColors)) {
+        const QColor color(name);
+        const QString normalizedName = color.name(QColor::HexArgb);
+        if (color.isValid() && !normalizedCustomColors.contains(normalizedName)) {
+            normalizedCustomColors.append(normalizedName);
+        }
     }
+    if (normalizedCustomColors.size() > maxCustomQuickColors) {
+        normalizedCustomColors = normalizedCustomColors.mid(0, maxCustomQuickColors);
+    }
+    if (normalizedCustomColors != savedCustomColors) {
+        settings.setValue(QStringLiteral("Velyntora/CustomQuickColors"), normalizedCustomColors);
+    }
+    savedCustomColors = normalizedCustomColors;
     for (const QString &name : savedCustomColors) {
         const QColor color(name);
         if (color.isValid()) {
