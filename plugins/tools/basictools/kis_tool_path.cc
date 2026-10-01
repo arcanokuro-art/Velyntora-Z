@@ -109,11 +109,22 @@ void KisToolPath::continuePrimaryAction(KoPointerEvent *event)
 void KisToolPath::endPrimaryAction(KoPointerEvent *event)
 {
     mouseReleaseEvent(event);
+
+    // Velyntora Line/Curve is line-first: a normal drag creates one
+    // editable segment instead of leaving the old multi-click Bezier
+    // construction active. Curve adjustment is handled as a follow-up
+    // editing step.
+    if (localTool()->pathStarted()) {
+        localTool()->endPath();
+    }
 }
 
 void KisToolPath::beginPrimaryDoubleClickAction(KoPointerEvent *event)
 {
-    DelegatedPathTool::mouseDoubleClickEvent(event);
+    // A double click must not re-enter the legacy multi-point Bezier flow.
+    // Treat it as the same line-first gesture used by the primary action.
+    beginPrimaryAction(event);
+    endPrimaryAction(event);
 }
 
 QList<QPointer<QWidget> > KisToolPath::createOptionWidgets()
