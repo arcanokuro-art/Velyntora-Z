@@ -5,12 +5,12 @@
      <Action name="KisToolPath">
       <icon>krita_draw_path</icon>
       <text>Line/Curve Tool</text>
-      <whatsThis></whatsThis>
+      <whatsThis>Draw a straight segment and shape it into a curve without exposed Bezier handles.</whatsThis>
       <toolTip>Line/Curve Tool</toolTip>
       <iconText>Line/Curve Tool</iconText>
       <shortcut></shortcut>
       <isCheckable>false</isCheckable>
-      <statusTip></statusTip>
+      <statusTip>Draw and shape a simple Line/Curve</statusTip>
     </Action>
   </Actions>
 </ActionCollection>
