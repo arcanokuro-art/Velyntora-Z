@@ -17,7 +17,6 @@
 #include <QSettings>
 #include <QMenu>
 #include <QTimer>
-#include <QEvent>
 #include <QGridLayout>
 #include <QLabel>
 
@@ -326,6 +325,7 @@ void KisStatusBar::setup()
     m_velyntoraImageSizeLabel->setAlignment(Qt::AlignCenter);
     m_velyntoraImageSizeLabel->setMinimumWidth(96);
     m_velyntoraImageSizeLabel->setMaximumWidth(150);
+    m_velyntoraImageSizeLabel->setTextInteractionFlags(Qt::NoTextInteraction);
     m_velyntoraImageSizeLabel->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
     m_velyntoraImageSizeLabel->setVisible(false);
     addStatusBarItem(m_velyntoraImageSizeLabel);
