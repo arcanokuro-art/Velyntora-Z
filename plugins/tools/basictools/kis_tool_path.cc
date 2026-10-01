@@ -180,9 +180,16 @@ void KisToolPath::beginPrimaryDoubleClickAction(KoPointerEvent *event)
     // Starting a fresh press/release pair here can create a zero-length
     // segment on touch devices where a double-click follows the normal tap.
     Q_UNUSED(event);
-    if (localTool()->pathStarted()) {
-        localTool()->endPath();
+    if (!localTool()->pathStarted()) {
+        return;
     }
+
+    if (!nodeEditable()) {
+        localTool()->cancelPath();
+        return;
+    }
+
+    localTool()->endPath();
 }
 
 QList<QPointer<QWidget> > KisToolPath::createOptionWidgets()
