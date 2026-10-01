@@ -4,10 +4,10 @@
       <text>Tool Shortcuts</text>
      <Action name="KisToolPath">
       <icon>krita_draw_path</icon>
-      <text>Bezier Curve Tool</text>
+      <text>Line/Curve Tool</text>
       <whatsThis></whatsThis>
-      <toolTip>Bezier Curve Tool. Shift-mouseclick or double-click ends the curve.</toolTip>
-      <iconText>Bezier Curve Tool. Shift-mouseclick or double-click ends the curve.</iconText>
+      <toolTip>Line/Curve Tool</toolTip>
+      <iconText>Line/Curve Tool</iconText>
       <shortcut></shortcut>
       <isCheckable>false</isCheckable>
       <statusTip></statusTip>
