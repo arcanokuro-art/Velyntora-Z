@@ -182,6 +182,10 @@ void __KisToolPathLocalTool::addPathShape(KoPathShape* pathShape)
         // at one third/two thirds of the segment. This gives Line/Curve a
         // curve-ready representation without changing what the user drew.
         if (!qFuzzyIsNull(delta.x()) || !qFuzzyIsNull(delta.y())) {
+            // An open two-anchor curve must not carry the opposite endpoint
+            // handles left over from any legacy path-tool state.
+            start->removeControlPoint1();
+            end->removeControlPoint2();
             start->setControlPoint2(start->point() + delta / 3.0);
             end->setControlPoint1(end->point() - delta / 3.0);
 
