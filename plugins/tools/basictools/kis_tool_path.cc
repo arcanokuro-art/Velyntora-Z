@@ -238,8 +238,7 @@ void __KisToolPathLocalTool::addPathShape(KoPathShape* pathShape)
         return;
     }
 
-    {
-        const QPointF delta = end->point() - start->point();
+    const QPointF delta = end->point() - start->point();
 
         // Keep the initial result visually identical to a straight line.
         // The automatically generated cubic handles are collinear and placed
@@ -252,8 +251,7 @@ void __KisToolPathLocalTool::addPathShape(KoPathShape* pathShape)
             return;
         }
 
-        {
-            // An open two-anchor curve must not carry the opposite endpoint
+        // An open two-anchor curve must not carry the opposite endpoint
             // handles left over from any legacy path-tool state.
             start->removeControlPoint1();
             end->removeControlPoint2();
@@ -267,9 +265,7 @@ void __KisToolPathLocalTool::addPathShape(KoPathShape* pathShape)
             // Endpoints only own one active handle on an open Line/Curve.
             // Do not mark them IsSmooth: that flag describes a join with
             // incoming and outgoing tangents and is misleading at endpoints.
-            pathShape->normalize();
-        }
-    }
+        pathShape->normalize();
 
     // Line/Curve segments are deliberately independent shapes. Merging here
     // would hand the new segment back to KoCreatePathTool's legacy multi-point
