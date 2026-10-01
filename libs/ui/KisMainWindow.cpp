@@ -537,6 +537,13 @@ KisMainWindow::KisMainWindow(QUuid uuid)
     // Keep Krita's full Palette docker available from Settings > Dockers,
     // but do not force it open in the default drawing workspace.
 
+    // Keep the central canvas as the visual priority. On narrower displays
+    // the two side areas remain bounded instead of expanding into the drawing
+    // surface; users can still resize dockers manually inside these limits.
+    if (toolbox && layersDocker && historyDocker) {
+        resizeDocks({toolbox, layersDocker}, {112, 260}, Qt::Horizontal);
+    }
+
     d->mdiArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     d->mdiArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     d->mdiArea->setTabPosition(QTabWidget::North);
