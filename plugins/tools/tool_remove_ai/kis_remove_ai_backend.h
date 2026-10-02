@@ -72,6 +72,16 @@ public:
             const QImage patch = writeBackImage();
             return !patch.isNull() && patch.size() == writeBackRect.size();
         }
+
+        bool isReadyForCommit() const {
+            if (!hasValidWriteBack() || !hasUsableWriteBackImage()) {
+                return false;
+            }
+            // A successful backend result must not carry an error. Keeping
+            // this invariant prevents Krita from committing a partially
+            // failed inference into the undo history.
+            return error.isEmpty() && inferenceSize.isValid();
+        }
     };
 
     virtual ~KisRemoveAIBackend() = default;
