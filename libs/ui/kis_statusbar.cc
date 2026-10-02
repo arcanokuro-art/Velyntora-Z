@@ -791,10 +791,11 @@ void KisStatusBar::slotCanvasRotationChanged()
     KisCanvas2 *canvas = m_viewManager->canvasBase();
     if (!canvas) return;
 
-    const qreal angleDiff = qAbs(m_canvasAngleSelector->angle()) -
-                            qAbs(canvas->rotationAngle());
+    const qreal angleDiff = m_canvasAngleSelector->angle() - canvas->rotationAngle();
 
-    // Only update the UI if the angle difference is big enough. This improves the performance.
+    // Preserve the rotation direction as well as its magnitude. Comparing
+    // absolute values made +30 and -30 degrees look identical, leaving the
+    // compact Velyntora angle control stale after a direction change.
     if (qAbs(angleDiff) >= 0.01) {
         KisSignalsBlocker l(m_canvasAngleSelector);
         m_canvasAngleSelector->setAngle(canvas->rotationAngle());
