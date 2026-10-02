@@ -23,6 +23,7 @@ public:
 
 private:
     static TensorInput makeTensorInput(const QImage &rgb, const QImage &mask, QString *error);
+    static bool hasRemovalPixels(const QImage &velyntoraMask);
     static QImage compositeMaskedPatch(const QImage &sourcePatch,
                                        const QImage &generatedPatch,
                                        const QImage &removeMask);
