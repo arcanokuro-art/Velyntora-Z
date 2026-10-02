@@ -317,13 +317,6 @@ void __KisToolPathLocalTool::addPathShape(KoPathShape* pathShape)
     const QPointF secondCurveHandle = end->point() - delta / 3.0;
     start->setControlPoint2(firstCurveHandle);
     end->setControlPoint1(secondCurveHandle);
-
-    // Mark the shape for Velyntora's simplified post-draw editor. Keeping
-    // this state on the shape (rather than global tool state) means Undo/Redo,
-    // document switching and multiple lines cannot accidentally share handles.
-    pathShape->setProperty("velyntoraLineCurve", true);
-    pathShape->setProperty("velyntoraLineCurveControl1", firstCurveHandle);
-    pathShape->setProperty("velyntoraLineCurveControl2", secondCurveHandle);
     pathShape->normalize();
 
     // Never merge into KoCreatePathTool's legacy multi-point path workflow.
@@ -337,15 +330,6 @@ void __KisToolPathLocalTool::addPathShape(KoPathShape* pathShape)
         if (KoSelection *selection = manager->selection()) {
             selection->deselectAll();
             selection->select(pathShape);
-
-            // Select both endpoints as well. Krita's path editor only exposes
-            // a point's active control handles when that point participates in
-            // the point selection. Our Line/Curve has exactly two endpoints,
-            // so selecting the shape alone is not sufficient for immediate
-            // two-handle editing; mark the intended state on the shape so the
-            // simplified editor can initialize both endpoints deterministically.
-            pathShape->setProperty("velyntoraLineCurveSelectBothEndpoints", true);
-            pathShape->setProperty("velyntoraLineCurveEndpointCount", 2);
         }
     }
 }
