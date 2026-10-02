@@ -8,8 +8,74 @@
 #include <QByteArray>
 #include <cstring>
 #include <limits>
+#include <array>
+#ifdef VELYN_REMOVE_HAS_ONNXRUNTIME
+#include <onnxruntime_cxx_api.h>
+#endif
 
 namespace {
+#ifdef VELYN_REMOVE_HAS_ONNXRUNTIME
+QImage runMiganOnnx(const QString &modelPath,
+                    const KisMiganBackend::TensorInput &input,
+                    const QByteArray &imageNchw,
+                    QString *error)
+{
+    try {
+        Ort::Env env(ORT_LOGGING_LEVEL_WARNING, "VelyntoraRemoveAI");
+        Ort::SessionOptions options;
+        options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_EXTENDED);
+        Ort::Session session(env, modelPath.toUtf8().constData(), options);
+
+        Ort::MemoryInfo memory = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
+        std::array<int64_t, 4> imageShape{1, 3, input.height, input.width};
+        std::array<int64_t, 4> maskShape{1, 1, input.height, input.width};
+
+        auto imageTensor = Ort::Value::CreateTensor<uint8_t>(
+            memory, reinterpret_cast<uint8_t *>(const_cast<char *>(imageNchw.constData())),
+            size_t(imageNchw.size()), imageShape.data(), imageShape.size());
+        auto maskTensor = Ort::Value::CreateTensor<uint8_t>(
+            memory, reinterpret_cast<uint8_t *>(const_cast<char *>(input.mask.constData())),
+            size_t(input.mask.size()), maskShape.data(), maskShape.size());
+
+        const char *inputNames[] = {"image", "mask"};
+        const char *outputNames[] = {"result"};
+        std::array<Ort::Value, 2> inputs{std::move(imageTensor), std::move(maskTensor)};
+        auto outputs = session.Run(Ort::RunOptions{nullptr}, inputNames, inputs.data(),
+                                   inputs.size(), outputNames, 1);
+        if (outputs.size() != 1 || !outputs[0].IsTensor()) {
+            if (error) *error = QStringLiteral("MI-GAN returned no result tensor.");
+            return {};
+        }
+
+        const auto info = outputs[0].GetTensorTypeAndShapeInfo();
+        const auto shape = info.GetShape();
+        if (shape.size() != 4 || shape[0] != 1 || shape[1] != 3 ||
+            shape[2] != input.height || shape[3] != input.width) {
+            if (error) *error = QStringLiteral("MI-GAN returned an unexpected tensor shape.");
+            return {};
+        }
+
+        const uint8_t *src = outputs[0].GetTensorData<uint8_t>();
+        QImage out(input.width, input.height, QImage::Format_RGBA8888);
+        const qsizetype plane = input.pixelCount();
+        for (int y = 0; y < input.height; ++y) {
+            uchar *row = out.scanLine(y);
+            for (int x = 0; x < input.width; ++x) {
+                const qsizetype i = qsizetype(y) * input.width + x;
+                row[x * 4] = src[i];
+                row[x * 4 + 1] = src[plane + i];
+                row[x * 4 + 2] = src[plane * 2 + i];
+                row[x * 4 + 3] = 255;
+            }
+        }
+        return out;
+    } catch (const Ort::Exception &e) {
+        if (error) *error = QStringLiteral("ONNX Runtime: %1").arg(QString::fromUtf8(e.what()));
+        return {};
+    }
+}
+#endif
+
 QRect maskedBounds(const QImage &mask)
 {
     if (mask.isNull()) return {};
@@ -409,16 +475,37 @@ KisRemoveAIBackend::Result KisMiganBackend::run(const Request &request)
             return result;
         }
 
+#ifdef VELYN_REMOVE_HAS_ONNXRUNTIME
+        const QString modelPath = QStandardPaths::locate(
+            QStandardPaths::AppDataLocation,
+            QStringLiteral("models/migan_pipeline_v2.onnx"),
+            QStandardPaths::LocateFile);
+        QImage generated = runMiganOnnx(modelPath, tensorInput, imageNchw, &tensorError);
+        if (!validateRuntimeOutput(generated, request.source.size(), &tensorError)) {
+            result.error = tensorError;
+            return result;
+        }
+
+        // The official pipeline already blends its generated region, but
+        // Velyntora narrows the final commit to the exact user selection.
+        result.image = compositeMaskedPatch(request.source, generated, compositeMask);
+        if (!validateRuntimeOutput(result.image, request.source.size(), &tensorError)) {
+            result.error = tensorError;
+            return result;
+        }
+        result.ok = true;
+        result.error.clear();
+        return result;
+#else
         Q_UNUSED(rgbBytes);
         Q_UNUSED(maskBytes);
         Q_UNUSED(imageNchw);
         Q_UNUSED(pipelineSource);
         Q_UNUSED(pipelineMask);
         Q_UNUSED(compositeMask);
-        Q_UNUSED(selectedPixels);
-        Q_UNUSED(writeBackBounds);
-        result.error = QStringLiteral("MI-GAN ONNX pipeline hook is not connected yet.");
+        result.error = QStringLiteral("MI-GAN ONNX Runtime support is not compiled in.");
         return result;
+#endif
     }
 
     const int targetSide = request.allowUpscale
