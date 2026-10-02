@@ -88,6 +88,22 @@ void KisStatusBar::setup()
 
     m_statusBar = m_viewManager->mainWindow()->statusBar();
 
+    // Functional active-tool indicator for Velyntora Z. The label is fed by
+    // KoToolManager, so it always reflects the tool Krita actually activated.
+    m_velyntoraActiveToolLabel = new QLabel(m_statusBar);
+    m_velyntoraActiveToolLabel->setObjectName("VelyntoraActiveTool");
+    m_velyntoraActiveToolLabel->setContentsMargins(6, 0, 8, 0);
+    m_velyntoraActiveToolLabel->setMinimumWidth(130);
+    m_velyntoraActiveToolLabel->setMaximumWidth(240);
+    m_velyntoraActiveToolLabel->setTextInteractionFlags(Qt::NoTextInteraction);
+    m_velyntoraActiveToolLabel->setAccessibleName(i18n("Active tool"));
+    addStatusBarItem(m_velyntoraActiveToolLabel);
+    connect(KoToolManager::instance(), &KoToolManager::changedTool,
+            this, [this](KoCanvasController *) { updateVelyntoraActiveTool(); });
+    connect(KoToolManager::instance(), &KoToolManager::changedCanvas,
+            this, [this](const KoCanvasBase *) { updateVelyntoraActiveTool(); });
+    updateVelyntoraActiveTool();
+
     // Velyntora Z: compact Pinta-like quick color strip.  These buttons use
     // Krita's own canvas resource provider, so choosing a swatch changes the
     // actual foreground painting color instead of maintaining a second color
@@ -609,6 +625,35 @@ void KisStatusBar::imageSizeChanged()
                 separator->setVisible(false);
             }
         }
+    }
+}
+
+void KisStatusBar::updateVelyntoraActiveTool()
+{
+    if (!m_velyntoraActiveToolLabel) return;
+
+    const QString activeId = KoToolManager::instance()->activeToolId();
+    QString toolName;
+    QString iconName;
+    const QList<KoToolAction*> actions = KoToolManager::instance()->toolActionList();
+    for (KoToolAction *action : actions) {
+        if (action && action->id() == activeId) {
+            toolName = action->iconText();
+            if (toolName.isEmpty()) toolName = action->toolTip();
+            iconName = action->iconName();
+            break;
+        }
+    }
+
+    if (toolName.isEmpty()) toolName = activeId;
+    if (toolName.isEmpty()) toolName = i18n("None");
+    m_velyntoraActiveToolLabel->setText(i18n("Tool: %1", toolName));
+    m_velyntoraActiveToolLabel->setToolTip(toolName);
+    if (!iconName.isEmpty()) {
+        m_velyntoraActiveToolLabel->setPixmap(KisIconUtils::loadIcon(iconName).pixmap(16, 16));
+        m_velyntoraActiveToolLabel->setText(i18n("  Tool: %1", toolName));
+    } else {
+        m_velyntoraActiveToolLabel->setPixmap(QPixmap());
     }
 }
 
