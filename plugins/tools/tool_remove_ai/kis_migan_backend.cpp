@@ -44,9 +44,17 @@ QImage KisMiganBackend::normalizeMask(const QImage &mask, const QSize &size)
     }
 
     QImage normalized = mask.convertToFormat(QImage::Format_Grayscale8)
-                                .scaled(size, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-    // MI-GAN contract used by Velyntora:
-    // 0 = preserve source pixel, 255 = region requested for removal.
+                                .scaled(size, Qt::IgnoreAspectRatio, Qt::FastTransformation);
+
+    // Velyntora paints 255 where the user wants removal. The official
+    // MI-GAN ONNX pipeline expects the inverse: 255 = known/preserve and
+    // 0 = masked/inpaint. Keep the tool convention and invert only here.
+    for (int y = 0; y < normalized.height(); ++y) {
+        uchar *row = normalized.scanLine(y);
+        for (int x = 0; x < normalized.width(); ++x) {
+            row[x] = row[x] >= 128 ? 0 : 255;
+        }
+    }
     return normalized;
 }
 
