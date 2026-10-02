@@ -23,6 +23,11 @@ public:
         qsizetype selectedPixelCount = 0;
         QSize inferenceSize;
         QString error;
+
+        bool hasValidWriteBack() const {
+            return ok && !image.isNull() && !writeBackRect.isEmpty() &&
+                   selectedPixelCount > 0 && sourceRect.contains(writeBackRect);
+        }
     };
 
     virtual ~KisRemoveAIBackend() = default;
