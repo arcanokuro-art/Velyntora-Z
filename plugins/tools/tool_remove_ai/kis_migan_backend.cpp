@@ -37,6 +37,37 @@ QRect expandedSquare(const QRect &bounds, const QSize &limit)
 }
 }
 
+QImage KisMiganBackend::compositeMaskedPatch(const QImage &sourcePatch,
+                                                   const QImage &generatedPatch,
+                                                   const QImage &removeMask)
+{
+    if (sourcePatch.isNull() || generatedPatch.isNull() || removeMask.isNull() ||
+        sourcePatch.size() != generatedPatch.size() ||
+        sourcePatch.size() != removeMask.size()) {
+        return {};
+    }
+
+    QImage output = sourcePatch.convertToFormat(QImage::Format_RGBA8888);
+    const QImage generated = generatedPatch.convertToFormat(QImage::Format_RGBA8888);
+    const QImage mask = removeMask.convertToFormat(QImage::Format_Grayscale8);
+
+    for (int y = 0; y < output.height(); ++y) {
+        uchar *dst = output.scanLine(y);
+        const uchar *src = generated.constScanLine(y);
+        const uchar *m = mask.constScanLine(y);
+        for (int x = 0; x < output.width(); ++x) {
+            if (m[x] >= 128) {
+                const int i = x * 4;
+                dst[i] = src[i];
+                dst[i + 1] = src[i + 1];
+                dst[i + 2] = src[i + 2];
+                dst[i + 3] = src[i + 3];
+            }
+        }
+    }
+    return output;
+}
+
 QImage KisMiganBackend::normalizeMask(const QImage &mask, const QSize &size)
 {
     if (mask.isNull() || size.isEmpty()) {
