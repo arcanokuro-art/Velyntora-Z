@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - velyntora-drawing-ui
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 # Validation workflow for the Velyntora Z drawing workspace.
