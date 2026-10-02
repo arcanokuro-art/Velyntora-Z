@@ -16,6 +16,8 @@
 #include <QMouseEvent>
 #include <QTabletEvent>
 #include <QEvent>
+#include <KoShapeManager.h>
+#include <KoSelection.h>
 
 
 KisToolPath::KisToolPath(KoCanvasBase * canvas)
@@ -326,4 +328,15 @@ void __KisToolPathLocalTool::addPathShape(KoPathShape* pathShape)
 
     // Never merge into KoCreatePathTool's legacy multi-point path workflow.
     m_parentTool->addPathShape(pathShape, kundo2_i18n("Draw Line/Curve"));
+
+    // Hand the freshly-created curve to Krita's shape selection machinery.
+    // This makes the two inner controls immediately available to the normal
+    // post-draw editing path instead of forcing the user back through the
+    // legacy multi-click Bezier creation workflow.
+    if (KoShapeManager *manager = m_parentTool->canvas()->shapeManager()) {
+        if (KoSelection *selection = manager->selection()) {
+            selection->deselectAll();
+            selection->select(pathShape);
+        }
+    }
 }
