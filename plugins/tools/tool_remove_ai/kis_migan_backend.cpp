@@ -1,6 +1,8 @@
 #include "kis_migan_backend.h"
 
 #include <QFileInfo>
+#include <QStandardPaths>
+#include <QDir>
 #include <QRect>
 #include <QPainter>
 #include <QByteArray>
@@ -178,9 +180,25 @@ bool KisMiganBackend::validateRuntimeOutput(const QImage &image, const QSize &ex
 
 bool KisMiganBackend::isAvailable() const
 {
-    // The Android model asset/runtime is connected in the next integration
-    // stage. Returning false prevents accidental destructive fallback.
+    // A model must exist before the runtime can be considered usable. Keep
+    // this check independent from the ONNX adapter so Android packaging can
+    // install/update the model without changing tool code.
+    const QString modelPath = QStandardPaths::locate(
+        QStandardPaths::AppDataLocation,
+        QStringLiteral("models/migan_pipeline_v2.onnx"),
+        QStandardPaths::LocateFile);
+
+    if (modelPath.isEmpty() || !QFileInfo::exists(modelPath)) {
+        return false;
+    }
+
+#ifdef VELYN_REMOVE_HAS_ONNXRUNTIME
+    return true;
+#else
+    // Never advertise Remove as available when the APK was built without
+    // the native ONNX Runtime adapter, even if a stale model file exists.
     return false;
+#endif
 }
 
 KisRemoveAIBackend::Result KisMiganBackend::run(const Request &request)
