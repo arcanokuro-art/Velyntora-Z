@@ -35,6 +35,20 @@ if(ONNXRUNTIME_ROOT)
                 message(FATAL_ERROR "Velyntora Remove AI: Android requires a shared libonnxruntime.so")
             endif()
             install(FILES "${VELYN_ONNXRUNTIME_LIBRARY}" DESTINATION lib)
+
+            # Catch the most common Android packaging mistake early: linking
+            # an ONNX Runtime binary built for a different ABI.
+            get_filename_component(VELYN_ONNXRUNTIME_LIB_DIR "${VELYN_ONNXRUNTIME_LIBRARY}" DIRECTORY)
+            string(TOLOWER "${VELYN_ONNXRUNTIME_LIB_DIR}" VELYN_ONNXRUNTIME_LIB_DIR_LOWER)
+            if(DEFINED ANDROID_ABI AND NOT "${ANDROID_ABI}" STREQUAL "")
+                string(TOLOWER "${ANDROID_ABI}" VELYN_ANDROID_ABI_LOWER)
+                if(VELYN_ONNXRUNTIME_LIB_DIR_LOWER MATCHES "arm64-v8a|armeabi-v7a|x86_64|x86")
+                    if(NOT VELYN_ONNXRUNTIME_LIB_DIR_LOWER MATCHES "${VELYN_ANDROID_ABI_LOWER}")
+                        message(FATAL_ERROR
+                            "Velyntora Remove AI: ONNX Runtime ABI does not match ANDROID_ABI=${ANDROID_ABI}: ${VELYN_ONNXRUNTIME_LIBRARY}")
+                    endif()
+                endif()
+            endif()
         endif()
         message(STATUS "Velyntora Remove AI: ONNX Runtime enabled")
     else()
