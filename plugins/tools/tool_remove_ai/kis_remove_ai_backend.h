@@ -25,8 +25,17 @@ public:
         QString error;
 
         bool hasValidWriteBack() const {
-            return ok && !image.isNull() && !writeBackRect.isEmpty() &&
-                   selectedPixelCount > 0 && sourceRect.contains(writeBackRect);
+            if (!ok || image.isNull() || writeBackRect.isEmpty() ||
+                selectedPixelCount <= 0 || !sourceRect.contains(writeBackRect)) {
+                return false;
+            }
+
+            // Backends may return either a full-source image or an ROI-sized
+            // image. Reject every other geometry before Krita opens an undo
+            // transaction and touches the active paint layer.
+            const bool fullSourceResult = image.rect().contains(writeBackRect);
+            const bool roiResult = image.size() == sourceRect.size();
+            return fullSourceResult || roiResult;
         }
     };
 
