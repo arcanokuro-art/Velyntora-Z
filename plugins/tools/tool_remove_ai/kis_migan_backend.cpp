@@ -76,9 +76,9 @@ KisMiganBackend::TensorInput KisMiganBackend::makeTensorInput(const QImage &rgb,
         input.width = input.height = 0;
         return input;
     }
-    input.rgb.resize(pixels * 3);
-    input.mask.resize(pixels);
-    if (input.rgb.size() != pixels * 3 || input.mask.size() != pixels) {
+    input.rgb.resize(input.rgbByteCount());
+    input.mask.resize(input.maskByteCount());
+    if (input.rgb.size() != input.rgbByteCount() || input.mask.size() != input.maskByteCount()) {
         if (error) *error = QStringLiteral("Could not allocate MI-GAN tensor buffers.");
         input = TensorInput{};
         return input;
