@@ -32,6 +32,24 @@ QImage runMiganOnnx(const QString &modelPath,
         Ort::Session session(env, nativeModelPath.constData(), options);
 #endif
 
+        // Fail fast if a different/incompatible ONNX model was packaged.
+        // The official MI-GAN pipeline contract is exactly image + mask -> result.
+        if (session.GetInputCount() != 2 || session.GetOutputCount() != 1) {
+            if (error) *error = QStringLiteral("Packaged MI-GAN model has an incompatible input/output contract.");
+            return {};
+        }
+        Ort::AllocatorWithDefaultOptions allocator;
+        const auto input0 = session.GetInputNameAllocated(0, allocator);
+        const auto input1 = session.GetInputNameAllocated(1, allocator);
+        const auto output0 = session.GetOutputNameAllocated(0, allocator);
+        const bool inputsOk =
+            (qstrcmp(input0.get(), "image") == 0 && qstrcmp(input1.get(), "mask") == 0) ||
+            (qstrcmp(input0.get(), "mask") == 0 && qstrcmp(input1.get(), "image") == 0);
+        if (!inputsOk || qstrcmp(output0.get(), "result") != 0) {
+            if (error) *error = QStringLiteral("Packaged MI-GAN model uses unexpected tensor names.");
+            return {};
+        }
+
         Ort::MemoryInfo memory = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
         std::array<int64_t, 4> imageShape{1, 3, input.height, input.width};
         std::array<int64_t, 4> maskShape{1, 1, input.height, input.width};
