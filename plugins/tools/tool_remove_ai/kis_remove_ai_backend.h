@@ -4,6 +4,9 @@
 #include <QImage>
 #include <QString>
 #include <QRect>
+#include <QSize>
+#include <QPoint>
+#include <QtGlobal>
 
 class KisRemoveAIBackend
 {
