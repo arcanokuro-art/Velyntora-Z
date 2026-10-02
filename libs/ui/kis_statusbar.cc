@@ -450,7 +450,14 @@ void KisStatusBar::setView(QPointer<KisView> imageView)
     if (m_imageView) {
         if (m_velyntoraCanvasWidget) {
             m_velyntoraCanvasWidget->removeEventFilter(this);
-            m_velyntoraCanvasWidget.clear();
+        }
+        // Never carry canvas coordinates across document/view switches.
+        // QPointer protects destruction, but explicitly clearing here also
+        // guarantees the next event filter is attached to the new canvas only.
+        m_velyntoraCanvasWidget.clear();
+        if (m_velyntoraCursorPositionLabel) {
+            m_velyntoraCursorPositionLabel->clear();
+            m_velyntoraCursorPositionLabel->setVisible(false);
         }
         if (m_imageView->canvasBase()) {
             m_imageView->canvasBase()->canvasController()->proxyObject->disconnect(this);
