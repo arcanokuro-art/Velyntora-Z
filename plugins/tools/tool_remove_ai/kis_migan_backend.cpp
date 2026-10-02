@@ -195,6 +195,18 @@ KisRemoveAIBackend::Result KisMiganBackend::run(const Request &request)
         // - generated pixels are accepted only after validateRuntimeOutput().
         // This prevents dangling QImage storage when inference is moved to a
         // worker thread on Android.
+        // Make the buffers contiguous before handing them to a native
+        // inference runtime. QImage scanlines may contain padding, while ONNX
+        // tensor upload code must know the exact byte layout.
+        const qsizetype rgbBytes = qsizetype(pipelineSource.bytesPerLine()) * pipelineSource.height();
+        const qsizetype maskBytes = qsizetype(pipelineMask.bytesPerLine()) * pipelineMask.height();
+        if (rgbBytes <= 0 || maskBytes <= 0) {
+            result.error = QStringLiteral("Invalid MI-GAN input buffer size.");
+            return result;
+        }
+
+        Q_UNUSED(rgbBytes);
+        Q_UNUSED(maskBytes);
         Q_UNUSED(pipelineSource);
         Q_UNUSED(pipelineMask);
         result.error = QStringLiteral("MI-GAN ONNX pipeline hook is not connected yet.");
