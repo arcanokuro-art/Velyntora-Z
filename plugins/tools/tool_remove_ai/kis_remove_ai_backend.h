@@ -19,6 +19,8 @@ public:
         bool ok = false;
         QImage image;
         QRect sourceRect;
+        QRect writeBackRect;
+        qsizetype selectedPixelCount = 0;
         QSize inferenceSize;
         QString error;
     };
