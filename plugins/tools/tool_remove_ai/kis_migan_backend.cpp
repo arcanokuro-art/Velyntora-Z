@@ -104,6 +104,30 @@ KisMiganBackend::TensorInput KisMiganBackend::makeTensorInput(const QImage &rgb,
     return input;
 }
 
+QByteArray KisMiganBackend::packRgbNchw(const TensorInput &input, QString *error)
+{
+    if (!input.isValid()) {
+        if (error) *error = QStringLiteral("Cannot create MI-GAN NCHW tensor from invalid input.");
+        return {};
+    }
+
+    QByteArray nchw(input.rgbByteCount(), Qt::Uninitialized);
+    if (nchw.size() != input.rgbByteCount()) {
+        if (error) *error = QStringLiteral("Could not allocate MI-GAN NCHW tensor.");
+        return {};
+    }
+
+    const qsizetype plane = input.pixelCount();
+    const uchar *src = reinterpret_cast<const uchar *>(input.rgb.constData());
+    uchar *dst = reinterpret_cast<uchar *>(nchw.data());
+    for (qsizetype i = 0; i < plane; ++i) {
+        dst[i] = src[i * 3];
+        dst[plane + i] = src[i * 3 + 1];
+        dst[plane * 2 + i] = src[i * 3 + 2];
+    }
+    return nchw;
+}
+
 QImage KisMiganBackend::compositeMaskedPatch(const QImage &sourcePatch,
                                                    const QImage &generatedPatch,
                                                    const QImage &removeMask)
@@ -374,9 +398,20 @@ KisRemoveAIBackend::Result KisMiganBackend::run(const Request &request)
             return result;
         }
 
+        // Official MI-GAN pipeline contract is uint8 NCHW:
+        // image [1,3,H,W], mask [1,1,H,W], names "image"/"mask" and
+        // output "result". Convert the packed Qt HWC RGB bytes accordingly.
+        const QByteArray imageNchw = packRgbNchw(tensorInput, &tensorError);
+        if (imageNchw.size() != tensorInput.rgbByteCount()) {
+            result.error = tensorError.isEmpty()
+                ? QStringLiteral("Could not create MI-GAN NCHW image tensor.")
+                : tensorError;
+            return result;
+        }
+
         Q_UNUSED(rgbBytes);
         Q_UNUSED(maskBytes);
-        Q_UNUSED(tensorInput);
+        Q_UNUSED(imageNchw);
         Q_UNUSED(pipelineSource);
         Q_UNUSED(pipelineMask);
         Q_UNUSED(compositeMask);
