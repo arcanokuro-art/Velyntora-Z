@@ -11,6 +11,11 @@ public:
         QByteArray mask;
         int width = 0;
         int height = 0;
+        bool isValid() const {
+            return width > 0 && height > 0 &&
+                   rgb.size() == qsizetype(width) * height * 3 &&
+                   mask.size() == qsizetype(width) * height;
+        }
     };
     bool isAvailable() const override;
     Result run(const Request &request) override;
