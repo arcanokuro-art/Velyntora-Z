@@ -205,6 +205,16 @@ KisRemoveAIBackend::Result KisMiganBackend::run(const Request &request)
             return result;
         }
 
+        // Reject impossible layouts before a native tensor upload. RGB888
+        // needs at least width*3 bytes per row and Grayscale8 at least width.
+        // Extra bytes are legal Qt scanline padding and must be handled by
+        // the runtime adapter rather than interpreted as image pixels.
+        if (pipelineSource.bytesPerLine() < pipelineSource.width() * 3 ||
+            pipelineMask.bytesPerLine() < pipelineMask.width()) {
+            result.error = QStringLiteral("Invalid MI-GAN input row stride.");
+            return result;
+        }
+
         Q_UNUSED(rgbBytes);
         Q_UNUSED(maskBytes);
         Q_UNUSED(pipelineSource);
