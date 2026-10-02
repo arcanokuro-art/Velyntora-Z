@@ -296,6 +296,15 @@ KisRemoveAIBackend::Result KisMiganBackend::run(const Request &request)
             return result;
         }
 
+        // Final adapter boundary: these counts must agree with both the
+        // Qt images and the tightly packed tensor payload before ONNX sees
+        // any pointer.
+        if (rgbBytes < tensorInput.rgbByteCount() ||
+            maskBytes < tensorInput.maskByteCount()) {
+            result.error = QStringLiteral("MI-GAN source buffers are smaller than the packed tensor payload.");
+            return result;
+        }
+
         Q_UNUSED(rgbBytes);
         Q_UNUSED(maskBytes);
         Q_UNUSED(tensorInput);
