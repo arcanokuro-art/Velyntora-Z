@@ -54,6 +54,10 @@ QImage runMiganOnnx(const QString &modelPath,
         }
 
         const auto info = outputs[0].GetTensorTypeAndShapeInfo();
+        if (info.GetElementCount() != size_t(input.pixelCount() * 3)) {
+            if (error) *error = QStringLiteral("MI-GAN returned an unexpected tensor element count.");
+            return {};
+        }
         if (info.GetElementType() != ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT8) {
             if (error) *error = QStringLiteral("MI-GAN returned a non-uint8 result tensor.");
             return {};
@@ -66,7 +70,15 @@ QImage runMiganOnnx(const QString &modelPath,
         }
 
         const uint8_t *src = outputs[0].GetTensorData<uint8_t>();
+        if (!src) {
+            if (error) *error = QStringLiteral("MI-GAN returned a null result buffer.");
+            return {};
+        }
         QImage out(input.width, input.height, QImage::Format_RGBA8888);
+        if (out.isNull()) {
+            if (error) *error = QStringLiteral("Could not allocate the MI-GAN result image.");
+            return {};
+        }
         const qsizetype plane = input.pixelCount();
         for (int y = 0; y < input.height; ++y) {
             uchar *row = out.scanLine(y);
