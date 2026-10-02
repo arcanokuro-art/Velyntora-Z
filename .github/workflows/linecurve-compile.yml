@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - velyntora-linecurve-finish
+  pull_request:
+    branches:
+      - velyntora-drawing-ui
   workflow_dispatch:
 
 jobs:
