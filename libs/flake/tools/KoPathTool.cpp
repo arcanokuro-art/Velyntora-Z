@@ -948,6 +948,28 @@ void KoPathTool::initializeWithShapes(const QList<KoShape*> shapes)
     if (selectedShapes != m_pointSelection.selectedShapes()) {
         clearActivePointSelectionReferences();
         m_pointSelection.setSelectedShapes(selectedShapes);
+
+        // Velyntora Line/Curve creates a two-anchor cubic and requests an
+        // immediate, simplified post-draw edit. Select exactly its two
+        // endpoints so KoPathTool exposes only the active inner handles
+        // (start CP2 and end CP1) that were created by KisToolPath.
+        if (selectedShapes.size() == 1) {
+            KoPathShape *lineCurve = selectedShapes.first();
+            if (lineCurve->property("velyntoraLineCurve").toBool() &&
+                lineCurve->property("velyntoraLineCurveSelectBothEndpoints").toBool() &&
+                lineCurve->subpathPointCount(0) == 2) {
+                KoPathPoint *start = lineCurve->pointByIndex(KoPathPointIndex(0, 0));
+                KoPathPoint *end = lineCurve->pointByIndex(KoPathPointIndex(0, 1));
+                if (start && end) {
+                    m_pointSelection.add(start, true);
+                    m_pointSelection.add(end, false);
+                    // Consume the one-shot request. Re-selecting the curve later
+                    // should respect the user's normal point selection.
+                    lineCurve->setProperty("velyntoraLineCurveSelectBothEndpoints", false);
+                }
+            }
+        }
+
         repaintDecorations();
     }
 
