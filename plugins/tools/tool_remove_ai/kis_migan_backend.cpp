@@ -74,6 +74,9 @@ QImage KisMiganBackend::normalizeMask(const QImage &mask, const QSize &size)
         return {};
     }
 
+    // Resize the binary remove mask with nearest-neighbour semantics.
+    // Smooth interpolation would create gray pixels around the selection and
+    // subtly change the area that MI-GAN is allowed to reconstruct.
     QImage normalized = mask.convertToFormat(QImage::Format_Grayscale8)
                                 .scaled(size, Qt::IgnoreAspectRatio, Qt::FastTransformation);
 
