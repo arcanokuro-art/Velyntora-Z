@@ -28,7 +28,10 @@ if(ONNXRUNTIME_ROOT)
         target_compile_definitions(kritatoolremoveai PRIVATE VELYN_REMOVE_HAS_ONNXRUNTIME=1)
         message(STATUS "Velyntora Remove AI: ONNX Runtime enabled")
     else()
-        message(WARNING "Velyntora Remove AI: ONNXRUNTIME_ROOT is set but headers/library were not found")
+        # A configured runtime path means the caller expects Remove AI to be
+        # functional. Do not silently produce a release where the tool is
+        # present but can never run.
+        message(FATAL_ERROR "Velyntora Remove AI: ONNXRUNTIME_ROOT is set but headers/library were not found")
     endif()
 else()
     message(STATUS "Velyntora Remove AI: ONNX Runtime disabled (set ONNXRUNTIME_ROOT to enable)")
@@ -57,4 +60,18 @@ if(VELYN_MIGAN_MODEL)
     message(STATUS "Velyntora Remove AI: MI-GAN model will be packaged as models/migan.onnx")
 else()
     message(STATUS "Velyntora Remove AI: MI-GAN model not packaged (set VELYN_MIGAN_MODEL for release builds)")
+endif()
+
+
+# Release/Android builds can opt into a strict completeness gate. This makes
+# missing native inference assets a configuration error instead of a runtime
+# surprise.
+option(VELYN_REMOVE_AI_REQUIRED "Require a complete Remove AI runtime/model package" OFF)
+if(VELYN_REMOVE_AI_REQUIRED)
+    if(NOT ONNXRUNTIME_ROOT OR NOT VELYN_ONNXRUNTIME_INCLUDE_DIR OR NOT VELYN_ONNXRUNTIME_LIBRARY)
+        message(FATAL_ERROR "Velyntora Remove AI: complete ONNX Runtime is required for this build")
+    endif()
+    if(NOT VELYN_MIGAN_MODEL OR NOT EXISTS "${VELYN_MIGAN_MODEL}")
+        message(FATAL_ERROR "Velyntora Remove AI: MI-GAN model is required for this build")
+    endif()
 endif()
