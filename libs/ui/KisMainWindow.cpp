@@ -502,8 +502,8 @@ KisMainWindow::KisMainWindow(QUuid uuid)
         // Three compact tool columns are the Velyntora Z default.  Keep the
         // strip narrow enough for Android landscape while allowing the
         // toolbox's existing scroll area to expose every Krita tool.
-        toolbox->setMinimumWidth(112);
-        toolbox->setMaximumWidth(156);
+        toolbox->setMinimumWidth(104);
+        toolbox->setMaximumWidth(144);
         toolbox->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
     }
 
@@ -513,16 +513,16 @@ KisMainWindow::KisMainWindow(QUuid uuid)
     if (layersDocker) {
         addDockWidget(Qt::RightDockWidgetArea, layersDocker);
         layersDocker->setVisible(true);
-        layersDocker->setMinimumWidth(220);
-        layersDocker->setMaximumWidth(340);
+        layersDocker->setMinimumWidth(208);
+        layersDocker->setMaximumWidth(320);
         layersDocker->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
     }
 
     if (historyDocker) {
         addDockWidget(Qt::RightDockWidgetArea, historyDocker);
         historyDocker->setVisible(true);
-        historyDocker->setMinimumWidth(220);
-        historyDocker->setMaximumWidth(340);
+        historyDocker->setMinimumWidth(208);
+        historyDocker->setMaximumWidth(320);
         historyDocker->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
 
         if (layersDocker) {
@@ -541,7 +541,7 @@ KisMainWindow::KisMainWindow(QUuid uuid)
     // the two side areas remain bounded instead of expanding into the drawing
     // surface; users can still resize dockers manually inside these limits.
     if (toolbox && layersDocker && historyDocker) {
-        resizeDocks({toolbox, layersDocker}, {112, 260}, Qt::Horizontal);
+        resizeDocks({toolbox, layersDocker}, {104, 248}, Qt::Horizontal);
     }
 
     d->mdiArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
