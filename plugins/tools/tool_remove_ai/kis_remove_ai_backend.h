@@ -41,6 +41,16 @@ public:
                                    image.rect().contains(localWriteBack);
             return fullSourceResult || roiResult;
         }
+
+        QRect imageWriteBackRect() const {
+            if (!hasValidWriteBack()) {
+                return QRect();
+            }
+            if (image.size() == sourceRect.size()) {
+                return writeBackRect.translated(-sourceRect.topLeft());
+            }
+            return writeBackRect;
+        }
     };
 
     virtual ~KisRemoveAIBackend() = default;
