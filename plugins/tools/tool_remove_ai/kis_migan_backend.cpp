@@ -5,6 +5,7 @@
 #include <QPainter>
 #include <QByteArray>
 #include <cstring>
+#include <limits>
 
 namespace {
 QRect maskedBounds(const QImage &mask)
@@ -51,8 +52,14 @@ KisMiganBackend::TensorInput KisMiganBackend::makeTensorInput(const QImage &rgb,
     }
     input.width = rgb.width();
     input.height = rgb.height();
-    input.rgb.resize(input.width * input.height * 3);
-    input.mask.resize(input.width * input.height);
+    const qsizetype pixels = input.pixelCount();
+    if (pixels <= 0 || pixels > (std::numeric_limits<qsizetype>::max() / 3)) {
+        if (error) *error = QStringLiteral("MI-GAN tensor dimensions overflow.");
+        input.width = input.height = 0;
+        return input;
+    }
+    input.rgb.resize(pixels * 3);
+    input.mask.resize(pixels);
     for (int y = 0; y < input.height; ++y) {
         memcpy(input.rgb.data() + qsizetype(y) * input.width * 3,
                rgb.constScanLine(y), size_t(input.width * 3));
