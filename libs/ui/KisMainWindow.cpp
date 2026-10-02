@@ -533,6 +533,22 @@ KisMainWindow::KisMainWindow(QUuid uuid)
         }
     }
 
+    // Velyntora Z animation strip: keep Krita's real Animation Timeline
+    // implementation, but dock it permanently at the bottom by default so
+    // frames stay visually separated from the canvas and layer stack.
+    QDockWidget *timelineDocker = d->dockWidgetsMap.value(QStringLiteral("TimelineDocker"));
+    if (timelineDocker) {
+        addDockWidget(Qt::BottomDockWidgetArea, timelineDocker);
+        timelineDocker->setVisible(true);
+        timelineDocker->setMinimumHeight(150);
+        timelineDocker->setMaximumHeight(300);
+        timelineDocker->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+
+        // Give the canvas most of the vertical space while keeping enough
+        // room for frame thumbnails, transport controls and multiple layers.
+        resizeDocks({timelineDocker}, {190}, Qt::Vertical);
+    }
+
     // Velyntora Z uses the compact status-bar palette for drawing colors.
     // Keep Krita's full Palette docker available from Settings > Dockers,
     // but do not force it open in the default drawing workspace.
