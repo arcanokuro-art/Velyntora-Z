@@ -337,6 +337,15 @@ void __KisToolPathLocalTool::addPathShape(KoPathShape* pathShape)
         if (KoSelection *selection = manager->selection()) {
             selection->deselectAll();
             selection->select(pathShape);
+
+            // Select both endpoints as well. Krita's path editor only exposes
+            // a point's active control handles when that point participates in
+            // the point selection. Our Line/Curve has exactly two endpoints,
+            // so selecting the shape alone is not sufficient for immediate
+            // two-handle editing; mark the intended state on the shape so the
+            // simplified editor can initialize both endpoints deterministically.
+            pathShape->setProperty("velyntoraLineCurveSelectBothEndpoints", true);
+            pathShape->setProperty("velyntoraLineCurveEndpointCount", 2);
         }
     }
 }
