@@ -634,13 +634,11 @@ void KisStatusBar::updateVelyntoraActiveTool()
 
     const QString activeId = KoToolManager::instance()->activeToolId();
     QString toolName;
-    QString iconName;
     const QList<KoToolAction*> actions = KoToolManager::instance()->toolActionList();
     for (KoToolAction *action : actions) {
         if (action && action->id() == activeId) {
             toolName = action->iconText();
             if (toolName.isEmpty()) toolName = action->toolTip();
-            iconName = action->iconName();
             break;
         }
     }
@@ -649,12 +647,6 @@ void KisStatusBar::updateVelyntoraActiveTool()
     if (toolName.isEmpty()) toolName = i18n("None");
     m_velyntoraActiveToolLabel->setText(i18n("Tool: %1", toolName));
     m_velyntoraActiveToolLabel->setToolTip(toolName);
-    if (!iconName.isEmpty()) {
-        m_velyntoraActiveToolLabel->setPixmap(KisIconUtils::loadIcon(iconName).pixmap(16, 16));
-        m_velyntoraActiveToolLabel->setText(i18n("  Tool: %1", toolName));
-    } else {
-        m_velyntoraActiveToolLabel->setPixmap(QPixmap());
-    }
 }
 
 void KisStatusBar::updateSelectionIcon()
