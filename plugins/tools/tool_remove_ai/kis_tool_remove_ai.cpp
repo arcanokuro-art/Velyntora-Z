@@ -10,6 +10,8 @@
 #include <KisViewManager.h>
 #include <kis_transaction.h>
 #include <kis_image.h>
+#include <QIcon>
+#include <klocalizedstring.h>
 
 struct KisToolRemoveAI::Private {
     KisPaintDeviceSP mask;
@@ -97,8 +99,9 @@ void KisToolRemoveAI::endPrimaryAction(KoPointerEvent *event)
         return;
     }
 
-    KisPaintLayer *paintLayer = qobject_cast<KisPaintLayer *>(currentNode().data());
+    KisNodeSP targetNode = currentNode();
     KisImageSP current = currentImage();
+    KisPaintLayer *paintLayer = qobject_cast<KisPaintLayer *>(targetNode.data());
     if (!paintLayer || !current) return;
 
     KisPaintDeviceSP device = paintLayer->paintDevice();
@@ -131,6 +134,17 @@ void KisToolRemoveAI::endPrimaryAction(KoPointerEvent *event)
 
     const QImage patch = result.writeBackImage();
     if (patch.isNull()) return;
+
+    // Inference may become asynchronous later. Keep the commit guarded now so
+    // a document/layer switch can never write a result into the wrong target.
+    if (currentImage() != current || currentNode() != targetNode ||
+        paintLayer->paintDevice() != device) {
+        if (KisCanvas2 *kritaCanvas = dynamic_cast<KisCanvas2 *>(canvas())) {
+            kritaCanvas->viewManager()->showFloatingMessage(
+                i18n("Remove cancelled because the active layer changed"), QIcon(), 2500);
+        }
+        return;
+    }
 
     KisTransaction transaction(kundo2_i18n("Remove"), device);
     device->convertFromQImage(patch, nullptr,
