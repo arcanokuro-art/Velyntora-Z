@@ -749,10 +749,9 @@ void KoPathTool::mouseReleaseEvent(KoPointerEvent *event)
         m_currentStrategy->finishInteraction(event->modifiers());
         KUndo2Command *command = m_currentStrategy->createCommand();
         if (command) {
-            // Control-point strategies already return an undoable command.
-            // Keep Velyntora's simplified Line/Curve marker on the edited
-            // shape; the geometry change itself is therefore handled by the
-            // normal Krita undo stack instead of a parallel custom history.
+            // Control-point strategies already return undoable commands.
+            // Reuse Krita's normal history so Line/Curve edits participate in
+            // Undo/Redo without a parallel Velyntora-specific command path.
             d->canvas->addCommand(command);
         }
         if (hadNoSelection && dynamic_cast<KoPathPointRubberSelectStrategy*>(m_currentStrategy.data())
