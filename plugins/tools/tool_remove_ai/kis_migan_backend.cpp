@@ -255,10 +255,13 @@ QImage KisMiganBackend::compositeMaskedPatch(const QImage &sourcePatch,
         for (int x = 0; x < output.width(); ++x) {
             if (m[x] >= 128) {
                 const int i = x * 4;
+                // MI-GAN predicts RGB only. Preserve the layer's original
+                // alpha so Remove never turns transparent pixels opaque.
+                const uchar originalAlpha = dst[i + 3];
                 dst[i] = src[i];
                 dst[i + 1] = src[i + 1];
                 dst[i + 2] = src[i + 2];
-                dst[i + 3] = src[i + 3];
+                dst[i + 3] = originalAlpha;
             }
         }
     }
