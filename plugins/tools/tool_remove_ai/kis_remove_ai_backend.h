@@ -26,15 +26,19 @@ public:
 
         bool hasValidWriteBack() const {
             if (!ok || image.isNull() || writeBackRect.isEmpty() ||
-                selectedPixelCount <= 0 || !sourceRect.contains(writeBackRect)) {
+                selectedPixelCount <= 0 || sourceRect.isEmpty() ||
+                !sourceRect.contains(writeBackRect)) {
                 return false;
             }
 
             // Backends may return either a full-source image or an ROI-sized
-            // image. Reject every other geometry before Krita opens an undo
-            // transaction and touches the active paint layer.
+            // image. For an ROI result, translate the document-space
+            // write-back rectangle into ROI-local coordinates and validate it
+            // explicitly before Krita touches the active paint layer.
             const bool fullSourceResult = image.rect().contains(writeBackRect);
-            const bool roiResult = image.size() == sourceRect.size();
+            const QRect localWriteBack = writeBackRect.translated(-sourceRect.topLeft());
+            const bool roiResult = image.size() == sourceRect.size() &&
+                                   image.rect().contains(localWriteBack);
             return fullSourceResult || roiResult;
         }
     };
