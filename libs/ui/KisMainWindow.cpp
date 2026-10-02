@@ -1815,6 +1815,14 @@ void KisMainWindow::setMainWindowLayoutForCurrentMainWidget(int widgetIndex, boo
     else {
         setAutoSaveSettings(d->windowStateConfig, false);
         statusBar()->setVisible(KisConfig(true).showStatusBar());
+
+        // The welcome page hides every toolbar except mainToolBar. Restore
+        // Velyntora's dedicated third drawing row explicitly when a document
+        // becomes active; otherwise Herramienta: can remain hidden after the
+        // first transition from Welcome to the canvas.
+        if (QToolBar *toolInfoBar = findChild<QToolBar *>(QStringLiteral("VelyntoraToolInfoBar"))) {
+            toolInfoBar->show();
+        }
     }
 
     QList<QAction *> actions = d->dockWidgetMenu->menu()->actions();
