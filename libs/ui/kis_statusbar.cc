@@ -291,11 +291,30 @@ void KisStatusBar::setup()
 
         const QString name = selected.name(QColor::HexArgb);
         QSettings settings;
-        QStringList colors = settings.value(QStringLiteral("Velyntora/CustomQuickColors")).toStringList();
+        const QStringList storedColors =
+            settings.value(QStringLiteral("Velyntora/CustomQuickColors")).toStringList();
+        QStringList colors;
+        for (const QString &storedName : storedColors) {
+            const QColor storedColor(storedName);
+            if (!storedColor.isValid()) {
+                continue;
+            }
+            const QString normalizedName = storedColor.name(QColor::HexArgb);
+            if (!colors.contains(normalizedName)) {
+                colors.append(normalizedName);
+            }
+        }
+        if (colors.size() > maxCustomQuickColors) {
+            colors = colors.mid(0, maxCustomQuickColors);
+        }
+        if (colors != storedColors) {
+            settings.setValue(QStringLiteral("Velyntora/CustomQuickColors"), colors);
+        }
 
-        // Keep the compact status bar bounded on phones/tablets.  A small
-        // persistent custom palette is enough here; Krita's full Palette
-        // docker remains available for larger collections.
+        // Keep the compact status bar bounded on phones/tablets. Normalize
+        // settings again at insertion time so stale/duplicate entries cannot
+        // make the palette report itself full while fewer than eight custom
+        // swatches are actually visible.
         if (!colors.contains(name) && colors.size() < maxCustomQuickColors) {
             colors.append(name);
             settings.setValue(QStringLiteral("Velyntora/CustomQuickColors"), colors);
