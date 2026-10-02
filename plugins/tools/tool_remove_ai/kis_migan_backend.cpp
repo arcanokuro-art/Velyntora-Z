@@ -78,6 +78,12 @@ KisMiganBackend::TensorInput KisMiganBackend::makeTensorInput(const QImage &rgb,
     }
     input.rgb.resize(pixels * 3);
     input.mask.resize(pixels);
+    if (input.rgb.size() != pixels * 3 || input.mask.size() != pixels) {
+        if (error) *error = QStringLiteral("Could not allocate MI-GAN tensor buffers.");
+        input = TensorInput{};
+        return input;
+    }
+
     for (int y = 0; y < input.height; ++y) {
         if (rgb.bytesPerLine() < input.width * 3 || mask.bytesPerLine() < input.width) {
             if (error) *error = QStringLiteral("MI-GAN tensor input has an invalid row stride.");
@@ -88,6 +94,10 @@ KisMiganBackend::TensorInput KisMiganBackend::makeTensorInput(const QImage &rgb,
                rgb.constScanLine(y), size_t(input.width * 3));
         memcpy(input.mask.data() + qsizetype(y) * input.width,
                mask.constScanLine(y), size_t(input.width));
+    }
+    if (!input.isValid()) {
+        if (error) *error = QStringLiteral("MI-GAN tensor packing produced an invalid payload.");
+        return TensorInput{};
     }
     return input;
 }
