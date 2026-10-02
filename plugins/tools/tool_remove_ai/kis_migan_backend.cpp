@@ -232,6 +232,21 @@ KisRemoveAIBackend::Result KisMiganBackend::run(const Request &request)
 
     result.sourceRect = roi;
 
+    // Keep a canonical binary Velyntora mask for final compositing. The
+    // runtime-facing mask is inverted separately because MI-GAN uses the
+    // opposite convention. Never composite with the inverted model mask.
+    QImage compositeMask = request.mask.convertToFormat(QImage::Format_Grayscale8);
+    for (int y = 0; y < compositeMask.height(); ++y) {
+        uchar *row = compositeMask.scanLine(y);
+        for (int x = 0; x < compositeMask.width(); ++x) {
+            row[x] = row[x] >= 128 ? 255 : 0;
+        }
+    }
+    if (!hasRemovalPixels(compositeMask)) {
+        result.error = QStringLiteral("Remove mask became empty during normalization.");
+        return result;
+    }
+
     // The official MI-GAN ONNX pipeline accepts arbitrary-resolution uint8
     // RGB image + binary uint8 mask and performs crop/resize/normalization,
     // inference, resize-back and blending itself. Prefer that path to avoid
@@ -318,6 +333,7 @@ KisRemoveAIBackend::Result KisMiganBackend::run(const Request &request)
         Q_UNUSED(tensorInput);
         Q_UNUSED(pipelineSource);
         Q_UNUSED(pipelineMask);
+        Q_UNUSED(compositeMask);
         result.error = QStringLiteral("MI-GAN ONNX pipeline hook is not connected yet.");
         return result;
     }
