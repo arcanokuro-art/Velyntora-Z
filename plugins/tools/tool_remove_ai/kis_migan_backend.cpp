@@ -261,6 +261,16 @@ KisRemoveAIBackend::Result KisMiganBackend::run(const Request &request)
         return result;
     }
 
+    // Keep the final write-back bounded to the normalized selection. This
+    // contract is intentionally independent from the larger context ROI used
+    // by inference: MI-GAN may inspect neighboring pixels, but Velyntora must
+    // only modify pixels explicitly selected by the user.
+    const QRect writeBackBounds = maskedBounds(compositeMask).intersected(request.source.rect());
+    if (writeBackBounds.isEmpty()) {
+        result.error = QStringLiteral("Remove write-back region is empty.");
+        return result;
+    }
+
     // The official MI-GAN ONNX pipeline accepts arbitrary-resolution uint8
     // RGB image + binary uint8 mask and performs crop/resize/normalization,
     // inference, resize-back and blending itself. Prefer that path to avoid
@@ -349,6 +359,7 @@ KisRemoveAIBackend::Result KisMiganBackend::run(const Request &request)
         Q_UNUSED(pipelineMask);
         Q_UNUSED(compositeMask);
         Q_UNUSED(selectedPixels);
+        Q_UNUSED(writeBackBounds);
         result.error = QStringLiteral("MI-GAN ONNX pipeline hook is not connected yet.");
         return result;
     }
