@@ -51,6 +51,15 @@ public:
             }
             return writeBackRect;
         }
+
+        QPoint documentWriteBackOrigin() const {
+            return hasValidWriteBack() ? writeBackRect.topLeft() : QPoint();
+        }
+
+        QImage writeBackImage() const {
+            const QRect rect = imageWriteBackRect();
+            return rect.isEmpty() ? QImage() : image.copy(rect);
+        }
     };
 
     virtual ~KisRemoveAIBackend() = default;
