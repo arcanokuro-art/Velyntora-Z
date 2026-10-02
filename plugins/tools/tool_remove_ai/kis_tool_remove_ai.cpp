@@ -8,6 +8,8 @@
 #include <kis_algebra_2d.h>
 #include <kis_paint_layer.h>
 #include <KisViewManager.h>
+#include <kis_transaction.h>
+#include <kis_image.h>
 
 struct KisToolRemoveAI::Private {
     KisPaintDeviceSP mask;
@@ -95,9 +97,39 @@ void KisToolRemoveAI::endPrimaryAction(KoPointerEvent *event)
         return;
     }
 
-    // The next stage snapshots the active paint device and converts the
-    // accumulated mask into the backend request. Layer write-back remains
-    // forbidden until Result::isReadyForCommit() succeeds.
+    KisPaintLayer *paintLayer = qobject_cast<KisPaintLayer *>(currentNode().data());
+    KisImageSP current = currentImage();
+    if (!paintLayer || !current) return;
+
+    KisPaintDeviceSP device = paintLayer->paintDevice();
+    if (!device) return;
+
+    const QRect imageRect = current->bounds();
+    KisRemoveAIBackend::Request request;
+    request.source = device->convertToQImage(nullptr, imageRect);
+    request.mask = m_d->mask->convertToQImage(nullptr, imageRect);
+    request.modelSize = 512;
+    request.allowUpscale = true;
+    request.modelHandlesPipeline = true;
+
+    const KisRemoveAIBackend::Result result = m_d->backend.run(request);
+    if (!result.isReadyForCommit()) {
+        if (KisCanvas2 *kritaCanvas = dynamic_cast<KisCanvas2 *>(canvas())) {
+            kritaCanvas->viewManager()->showFloatingMessage(
+                result.commitValidationError(), QIcon(), 3000);
+        }
+        return;
+    }
+
+    const QImage patch = result.writeBackImage();
+    if (patch.isNull()) return;
+
+    KisTransaction transaction(kundo2_i18n("Remove"), device);
+    device->convertFromQImage(patch, nullptr,
+                              result.documentWriteBackOrigin().x(),
+                              result.documentWriteBackOrigin().y());
+    paintLayer->setDirty(result.writeBackRect());
+    transaction.commit(current->undoAdapter());
 }
 
 void KisToolRemoveAI::paint(QPainter &painter, const KoViewConverter &converter)
