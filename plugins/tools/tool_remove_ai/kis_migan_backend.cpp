@@ -120,7 +120,12 @@ KisRemoveAIBackend::Result KisMiganBackend::run(const Request &request)
 
     result.sourceRect = roi;
 
-    const QSize inferenceSize(request.modelSize, request.modelSize);
+    const int targetSide = request.allowUpscale
+        ? request.modelSize
+        : qMin(request.modelSize, qMax(roi.width(), roi.height()));
+    const QSize inferenceSize(targetSide, targetSide);
+    result.inferenceSize = inferenceSize;
+
     const QImage source512 = request.source.copy(roi)
                                            .convertToFormat(QImage::Format_RGBA8888)
                                            .scaled(inferenceSize, Qt::IgnoreAspectRatio,
