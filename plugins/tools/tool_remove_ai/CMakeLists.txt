@@ -26,6 +26,16 @@ if(ONNXRUNTIME_ROOT)
         target_include_directories(kritatoolremoveai PRIVATE "${VELYN_ONNXRUNTIME_INCLUDE_DIR}")
         target_link_libraries(kritatoolremoveai "${VELYN_ONNXRUNTIME_LIBRARY}")
         target_compile_definitions(kritatoolremoveai PRIVATE VELYN_REMOVE_HAS_ONNXRUNTIME=1)
+
+        # Android needs the native runtime inside the final package, not only
+        # linked while compiling the plugin. Install the resolved shared
+        # library so the deployment step can collect it into the APK.
+        if(ANDROID)
+            if(NOT VELYN_ONNXRUNTIME_LIBRARY MATCHES "\\.(so|so\\.[0-9.]+)$")
+                message(FATAL_ERROR "Velyntora Remove AI: Android requires a shared libonnxruntime.so")
+            endif()
+            install(FILES "${VELYN_ONNXRUNTIME_LIBRARY}" DESTINATION lib)
+        endif()
         message(STATUS "Velyntora Remove AI: ONNX Runtime enabled")
     else()
         # A configured runtime path means the caller expects Remove AI to be
