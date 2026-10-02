@@ -1,4 +1,5 @@
 #include "kis_tool_remove_ai.h"
+#include "kis_migan_backend.h"
 
 #include <KoColorSpaceRegistry.h>
 #include <kis_canvas2.h>
@@ -13,6 +14,7 @@ struct KisToolRemoveAI::Private {
     KisPainter painter;
     qreal radius = 40.0;
     QPainterPath outline;
+    KisMiganBackend backend;
 };
 
 KisToolRemoveAI::KisToolRemoveAI(KoCanvasBase *canvas)
@@ -82,11 +84,20 @@ void KisToolRemoveAI::endPrimaryAction(KoPointerEvent *event)
     addMaskPoint(event);
     setMode(KisTool::HOVER_MODE);
 
-    // Integration boundary: the image + this binary mask will be passed to
-    // the local inpainting backend (MI-GAN 512). Keep the mask alive until
-    // inference succeeds so a failed/cancelled run cannot damage the layer.
-    // The backend will own crop/resize-to-512 and compositing; the tool owns
-    // only user interaction and mask creation.
+    // Do not modify the paint layer until the native runtime is actually
+    // available. This turns the previous comment-only integration boundary
+    // into a real backend gate and keeps failed Remove attempts non-destructive.
+    if (!m_d->backend.isAvailable()) {
+        if (KisCanvas2 *kritaCanvas = dynamic_cast<KisCanvas2 *>(canvas())) {
+            kritaCanvas->viewManager()->showFloatingMessage(
+                i18n("Remove AI runtime is not available yet"), QIcon(), 2500);
+        }
+        return;
+    }
+
+    // The next stage snapshots the active paint device and converts the
+    // accumulated mask into the backend request. Layer write-back remains
+    // forbidden until Result::isReadyForCommit() succeeds.
 }
 
 void KisToolRemoveAI::paint(QPainter &painter, const KoViewConverter &converter)
