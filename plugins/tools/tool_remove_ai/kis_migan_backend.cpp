@@ -3,6 +3,8 @@
 #include <QFileInfo>
 #include <QRect>
 #include <QPainter>
+#include <QByteArray>
+#include <cstring>
 
 namespace {
 QRect maskedBounds(const QImage &mask)
@@ -215,8 +217,24 @@ KisRemoveAIBackend::Result KisMiganBackend::run(const Request &request)
             return result;
         }
 
+        // Pack rows into tightly contiguous buffers. This is the exact
+        // memory representation the native ONNX adapter can upload as HWC
+        // uint8 tensors without accidentally including Qt row padding.
+        QByteArray rgbPacked(pipelineSource.width() * pipelineSource.height() * 3, Qt::Uninitialized);
+        QByteArray maskPacked(pipelineMask.width() * pipelineMask.height(), Qt::Uninitialized);
+        for (int y = 0; y < pipelineSource.height(); ++y) {
+            memcpy(rgbPacked.data() + qsizetype(y) * pipelineSource.width() * 3,
+                   pipelineSource.constScanLine(y),
+                   size_t(pipelineSource.width() * 3));
+            memcpy(maskPacked.data() + qsizetype(y) * pipelineMask.width(),
+                   pipelineMask.constScanLine(y),
+                   size_t(pipelineMask.width()));
+        }
+
         Q_UNUSED(rgbBytes);
         Q_UNUSED(maskBytes);
+        Q_UNUSED(rgbPacked);
+        Q_UNUSED(maskPacked);
         Q_UNUSED(pipelineSource);
         Q_UNUSED(pipelineMask);
         result.error = QStringLiteral("MI-GAN ONNX pipeline hook is not connected yet.");
