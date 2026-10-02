@@ -496,11 +496,16 @@ void KisStatusBar::setView(QPointer<KisView> imageView)
         connect(m_imageView->canvasController()->proxyObject, &KoCanvasControllerProxyObject::documentRotationChanged,
                 this, &KisStatusBar::slotCanvasRotationChanged);
         updateStatusBarProfileLabel();
+        updateVelyntoraActiveTool();
         slotCanvasRotationChanged();
         addStatusBarItem(m_imageView->zoomManager()->zoomActionWidget());
     }
     else {
         m_canvasAngleSelector->setVisible(false);
+        if (m_velyntoraActiveToolLabel) {
+            m_velyntoraActiveToolLabel->clear();
+            m_velyntoraActiveToolLabel->setVisible(false);
+        }
         if (m_velyntoraCursorPositionLabel) {
             m_velyntoraCursorPositionLabel->clear();
             m_velyntoraCursorPositionLabel->setVisible(false);
@@ -645,8 +650,9 @@ void KisStatusBar::updateVelyntoraActiveTool()
 
     if (toolName.isEmpty()) toolName = activeId;
     if (toolName.isEmpty()) toolName = i18n("None");
-    m_velyntoraActiveToolLabel->setText(i18n("Tool: %1", toolName));
+    m_velyntoraActiveToolLabel->setText(i18n("Herramienta: %1", toolName));
     m_velyntoraActiveToolLabel->setToolTip(toolName);
+    m_velyntoraActiveToolLabel->setVisible(m_imageView != nullptr);
 }
 
 void KisStatusBar::updateSelectionIcon()
