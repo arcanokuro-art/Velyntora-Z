@@ -24,7 +24,13 @@ QImage runMiganOnnx(const QString &modelPath,
         Ort::Env env(ORT_LOGGING_LEVEL_WARNING, "VelyntoraRemoveAI");
         Ort::SessionOptions options;
         options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_EXTENDED);
-        Ort::Session session(env, modelPath.toUtf8().constData(), options);
+#ifdef Q_OS_WIN
+        const std::wstring nativeModelPath = modelPath.toStdWString();
+        Ort::Session session(env, nativeModelPath.c_str(), options);
+#else
+        const QByteArray nativeModelPath = QFile::encodeName(modelPath);
+        Ort::Session session(env, nativeModelPath.constData(), options);
+#endif
 
         Ort::MemoryInfo memory = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
         std::array<int64_t, 4> imageShape{1, 3, input.height, input.width};
@@ -48,6 +54,10 @@ QImage runMiganOnnx(const QString &modelPath,
         }
 
         const auto info = outputs[0].GetTensorTypeAndShapeInfo();
+        if (info.GetElementType() != ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT8) {
+            if (error) *error = QStringLiteral("MI-GAN returned a non-uint8 result tensor.");
+            return {};
+        }
         const auto shape = info.GetShape();
         if (shape.size() != 4 || shape[0] != 1 || shape[1] != 3 ||
             shape[2] != input.height || shape[3] != input.width) {
