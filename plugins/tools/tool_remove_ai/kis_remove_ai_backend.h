@@ -82,6 +82,15 @@ public:
             // failed inference into the undo history.
             return error.isEmpty() && inferenceSize.isValid();
         }
+
+        QString commitValidationError() const {
+            if (!ok) return QStringLiteral("Remove AI inference did not succeed.");
+            if (!error.isEmpty()) return error;
+            if (!inferenceSize.isValid()) return QStringLiteral("Remove AI inference size is invalid.");
+            if (!hasValidWriteBack()) return QStringLiteral("Remove AI write-back geometry is invalid.");
+            if (!hasUsableWriteBackImage()) return QStringLiteral("Remove AI write-back image is invalid.");
+            return QString();
+        }
     };
 
     virtual ~KisRemoveAIBackend() = default;
