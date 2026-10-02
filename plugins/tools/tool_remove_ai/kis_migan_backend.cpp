@@ -41,6 +41,19 @@ QRect expandedSquare(const QRect &bounds, const QSize &limit)
 }
 }
 
+bool KisMiganBackend::hasRemovalPixels(const QImage &velyntoraMask)
+{
+    if (velyntoraMask.isNull()) return false;
+    const QImage gray = velyntoraMask.convertToFormat(QImage::Format_Grayscale8);
+    for (int y = 0; y < gray.height(); ++y) {
+        const uchar *row = gray.constScanLine(y);
+        for (int x = 0; x < gray.width(); ++x) {
+            if (row[x] >= 128) return true;
+        }
+    }
+    return false;
+}
+
 KisMiganBackend::TensorInput KisMiganBackend::makeTensorInput(const QImage &rgb,
                                                                const QImage &mask,
                                                                QString *error)
@@ -166,6 +179,11 @@ KisRemoveAIBackend::Result KisMiganBackend::run(const Request &request)
 
     if (request.source.size() != request.mask.size()) {
         result.error = QStringLiteral("Remove image and mask sizes do not match.");
+        return result;
+    }
+
+    if (!hasRemovalPixels(request.mask)) {
+        result.error = QStringLiteral("Remove mask contains no selected pixels.");
         return result;
     }
 
