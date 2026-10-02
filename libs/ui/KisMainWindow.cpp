@@ -48,6 +48,8 @@
 #include <QTemporaryDir>
 #include <QScrollArea>
 #include <QActionGroup>
+#include <QLabel>
+#include <QToolBar>
 
 #include <kactioncollection.h>
 #include <kactionmenu.h>
@@ -475,6 +477,44 @@ KisMainWindow::KisMainWindow(QUuid uuid)
     Q_FOREACH(KoToolFactoryBase *toolFactory, KoToolRegistry::instance()->values()) {
         toolFactory->createActions(actionCollection());
     }
+
+    // Velyntora Z third drawing row: show the real active Krita tool above
+    // the document/canvas area instead of consuming space in the bottom status bar.
+    QToolBar *velyntoraToolInfoBar = new QToolBar(i18n("Velyntora Tool Info"), this);
+    velyntoraToolInfoBar->setObjectName(QStringLiteral("VelyntoraToolInfoBar"));
+    velyntoraToolInfoBar->setMovable(false);
+    velyntoraToolInfoBar->setFloatable(false);
+    velyntoraToolInfoBar->setAllowedAreas(Qt::TopToolBarArea);
+    velyntoraToolInfoBar->setIconSize(QSize(16, 16));
+    QLabel *velyntoraActiveToolLabel = new QLabel(velyntoraToolInfoBar);
+    velyntoraActiveToolLabel->setObjectName(QStringLiteral("VelyntoraActiveTool"));
+    velyntoraActiveToolLabel->setContentsMargins(8, 0, 12, 0);
+    velyntoraActiveToolLabel->setMinimumWidth(150);
+    velyntoraToolInfoBar->addWidget(velyntoraActiveToolLabel);
+    addToolBarBreak(Qt::TopToolBarArea);
+    addToolBar(Qt::TopToolBarArea, velyntoraToolInfoBar);
+
+    auto updateVelyntoraActiveTool = [velyntoraActiveToolLabel]() {
+        const QString activeId = KoToolManager::instance()->activeToolId();
+        QString toolName;
+        const QList<KoToolAction*> actions = KoToolManager::instance()->toolActionList();
+        for (KoToolAction *toolAction : actions) {
+            if (toolAction && toolAction->id() == activeId) {
+                toolName = toolAction->iconText();
+                if (toolName.isEmpty()) toolName = toolAction->toolTip();
+                break;
+            }
+        }
+        if (toolName.isEmpty()) toolName = activeId;
+        velyntoraActiveToolLabel->setText(
+            toolName.isEmpty() ? QString() : i18n("Herramienta: %1", toolName));
+        velyntoraActiveToolLabel->setToolTip(toolName);
+    };
+    connect(KoToolManager::instance(), &KoToolManager::changedTool,
+            this, [updateVelyntoraActiveTool](KoCanvasController *) { updateVelyntoraActiveTool(); });
+    connect(KoToolManager::instance(), &KoToolManager::changedCanvas,
+            this, [updateVelyntoraActiveTool](const KoCanvasBase *) { updateVelyntoraActiveTool(); });
+    updateVelyntoraActiveTool();
 
 
     Q_FOREACH (QDockWidget *wdg, dockWidgets()) {
