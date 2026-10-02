@@ -157,6 +157,10 @@ KisRemoveAIBackend::Result KisMiganBackend::run(const Request &request)
     const int targetSide = request.allowUpscale
         ? request.modelSize
         : qMin(request.modelSize, qMax(roi.width(), roi.height()));
+    if (targetSide <= 0) {
+        result.error = QStringLiteral("Invalid Remove inference dimensions.");
+        return result;
+    }
     const QSize inferenceSize(targetSide, targetSide);
     result.inferenceSize = inferenceSize;
 
