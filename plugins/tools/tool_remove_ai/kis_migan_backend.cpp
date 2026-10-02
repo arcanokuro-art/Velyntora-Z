@@ -2,6 +2,7 @@
 
 #include <QFileInfo>
 #include <QRect>
+#include <QPainter>
 
 namespace {
 QRect maskedBounds(const QImage &mask)
@@ -169,6 +170,26 @@ KisRemoveAIBackend::Result KisMiganBackend::run(const Request &request)
         // normalized/inverted binary mask. No synthetic success is returned
         // until ONNX Runtime is actually connected.
         const QImage pipelineMask = normalizeMask(request.mask, request.mask.size());
+        if (pipelineMask.isNull()) {
+            result.error = QStringLiteral("Could not prepare MI-GAN pipeline mask.");
+            return result;
+        }
+
+        // The full ONNX pipeline expects an opaque RGB image. Flatten alpha
+        // onto an opaque copy for inference; the original alpha remains owned
+        // by Krita and will be restored when the generated patch is applied.
+        QImage pipelineSource(request.source.size(), QImage::Format_RGB888);
+        pipelineSource.fill(Qt::white);
+        {
+            QPainter painter(&pipelineSource);
+            painter.drawImage(0, 0, request.source);
+        }
+        if (pipelineSource.isNull()) {
+            result.error = QStringLiteral("Could not prepare MI-GAN RGB input.");
+            return result;
+        }
+
+        Q_UNUSED(pipelineSource);
         Q_UNUSED(pipelineMask);
         result.error = QStringLiteral("MI-GAN ONNX pipeline hook is not connected yet.");
         return result;
