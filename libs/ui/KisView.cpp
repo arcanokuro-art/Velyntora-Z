@@ -1239,7 +1239,17 @@ void KisView::slotThemeChanged(QPalette pal)
 
 void KisView::slotUpdateDocumentTitle()
 {
-    QString title = d->document->caption();
+    // Velyntora Z document row is functional: unsaved documents get an
+    // explicit label, while saved/opened documents use their real file name.
+    QString title;
+    if (d->document->path().isEmpty()) {
+        title = i18n("[Unsaved]");
+    } else {
+        title = QFileInfo(d->document->path()).fileName();
+        if (title.isEmpty()) {
+            title = d->document->caption();
+        }
+    }
 
     if (!d->document->isReadWrite()) {
         title += " " + i18n("Write Protected");
