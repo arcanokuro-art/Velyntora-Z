@@ -154,6 +154,26 @@ KisRemoveAIBackend::Result KisMiganBackend::run(const Request &request)
 
     result.sourceRect = roi;
 
+    // The official MI-GAN ONNX pipeline accepts arbitrary-resolution uint8
+    // RGB image + binary uint8 mask and performs crop/resize/normalization,
+    // inference, resize-back and blending itself. Prefer that path to avoid
+    // applying those transforms twice.
+    if (request.modelHandlesPipeline) {
+        result.inferenceSize = request.source.size();
+        if (!isAvailable()) {
+            result.error = QStringLiteral("MI-GAN ONNX pipeline runtime is not installed yet.");
+            return result;
+        }
+
+        // Runtime hook receives the original-resolution source and the
+        // normalized/inverted binary mask. No synthetic success is returned
+        // until ONNX Runtime is actually connected.
+        const QImage pipelineMask = normalizeMask(request.mask, request.mask.size());
+        Q_UNUSED(pipelineMask);
+        result.error = QStringLiteral("MI-GAN ONNX pipeline hook is not connected yet.");
+        return result;
+    }
+
     const int targetSide = request.allowUpscale
         ? request.modelSize
         : qMin(request.modelSize, qMax(roi.width(), roi.height()));
