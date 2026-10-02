@@ -108,6 +108,14 @@ void KisToolRemoveAI::endPrimaryAction(KoPointerEvent *event)
     KisRemoveAIBackend::Request request;
     request.source = device->convertToQImage(nullptr, imageRect);
     request.mask = m_d->mask->convertToQImage(nullptr, imageRect);
+    if (request.source.isNull() || request.mask.isNull() ||
+        request.source.size() != request.mask.size()) {
+        if (KisCanvas2 *kritaCanvas = dynamic_cast<KisCanvas2 *>(canvas())) {
+            kritaCanvas->viewManager()->showFloatingMessage(
+                i18n("Remove could not snapshot the active layer"), QIcon(), 3000);
+        }
+        return;
+    }
     request.modelSize = 512;
     request.allowUpscale = true;
     request.modelHandlesPipeline = true;
