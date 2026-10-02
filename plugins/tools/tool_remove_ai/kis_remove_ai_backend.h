@@ -58,7 +58,19 @@ public:
 
         QImage writeBackImage() const {
             const QRect rect = imageWriteBackRect();
-            return rect.isEmpty() ? QImage() : image.copy(rect);
+            if (rect.isEmpty()) {
+                return QImage();
+            }
+            const QImage patch = image.copy(rect);
+            if (patch.isNull() || patch.size() != writeBackRect.size()) {
+                return QImage();
+            }
+            return patch;
+        }
+
+        bool hasUsableWriteBackImage() const {
+            const QImage patch = writeBackImage();
+            return !patch.isNull() && patch.size() == writeBackRect.size();
         }
     };
 
