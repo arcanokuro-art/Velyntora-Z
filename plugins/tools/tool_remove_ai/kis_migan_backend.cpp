@@ -270,6 +270,8 @@ KisRemoveAIBackend::Result KisMiganBackend::run(const Request &request)
         result.error = QStringLiteral("Remove write-back region is empty.");
         return result;
     }
+    result.writeBackRect = writeBackBounds;
+    result.selectedPixelCount = selectedPixels;
 
     // The official MI-GAN ONNX pipeline accepts arbitrary-resolution uint8
     // RGB image + binary uint8 mask and performs crop/resize/normalization,
