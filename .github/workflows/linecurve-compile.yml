@@ -23,4 +23,4 @@ jobs:
           cmake -S . -B build -G Ninja -DBUILD_TESTING=OFF
       - name: Compile modified LineCurve translation units
         run: |
-          cmake --build build --target kritabasictools -- -k 0
+          cmake --build build --target kritadefaulttools_static -- -k 0
