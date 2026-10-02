@@ -98,11 +98,14 @@ void KisStatusBar::setup()
     m_velyntoraActiveToolLabel->setTextInteractionFlags(Qt::NoTextInteraction);
     m_velyntoraActiveToolLabel->setAccessibleName(i18n("Active tool"));
     addStatusBarItem(m_velyntoraActiveToolLabel);
+    // There is no active drawing tool until a document/canvas is attached.
+    // Keep the indicator out of the empty workspace instead of showing "None".
+    m_velyntoraActiveToolLabel->setVisible(false);
     connect(KoToolManager::instance(), &KoToolManager::changedTool,
             this, [this](KoCanvasController *) { updateVelyntoraActiveTool(); });
     connect(KoToolManager::instance(), &KoToolManager::changedCanvas,
             this, [this](const KoCanvasBase *) { updateVelyntoraActiveTool(); });
-    updateVelyntoraActiveTool();
+    // setView() performs the first visible update once a real canvas exists.
 
     // Velyntora Z: compact Pinta-like quick color strip.  These buttons use
     // Krita's own canvas resource provider, so choosing a swatch changes the
