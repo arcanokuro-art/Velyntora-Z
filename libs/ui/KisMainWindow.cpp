@@ -550,7 +550,7 @@ KisMainWindow::KisMainWindow(QUuid uuid)
     // Velyntora Z keeps the document title row visually clean. Closing a
     // document remains available from File > Close / shortcuts; do not add a
     // decorative close "x" to the document tab itself.
-    d->mdiArea->setTabsClosable(false);
+    d->mdiArea->setTabsClosable(true);
     d->mdiArea->setAcceptDrops(true);
 
     themeChanged(); // updates icon styles
