@@ -22,7 +22,14 @@ KisToolPath::KisToolPath(KoCanvasBase * canvas)
     setIsOpacityPresetMode(true);
     KisCanvas2 *kritaCanvas = dynamic_cast<KisCanvas2*>(canvas);
 
-    connect(kritaCanvas->viewManager()->canvasResourceProvider(), SIGNAL(sigEffectiveCompositeOpChanged()), SLOT(resetCursorStyle()));
+    // The factory normally receives a KisCanvas2, but keep activation safe if
+    // a non-Krita canvas is ever supplied (tests/embedded views). The previous
+    // unconditional dereference could crash before the tool was usable.
+    if (kritaCanvas && kritaCanvas->viewManager() && kritaCanvas->viewManager()->canvasResourceProvider()) {
+        connect(kritaCanvas->viewManager()->canvasResourceProvider(),
+                SIGNAL(sigEffectiveCompositeOpChanged()),
+                SLOT(resetCursorStyle()));
+    }
 
 }
 
