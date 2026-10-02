@@ -19,6 +19,8 @@
 #include <QTimer>
 #include <QGridLayout>
 #include <QLabel>
+#include <QMouseEvent>
+#include <QTabletEvent>
 
 #include <utility>
 
@@ -51,6 +53,7 @@
 #include "KisViewManager.h"
 #include "kis_canvas_resource_provider.h"
 #include "canvas/kis_canvas2.h"
+#include "canvas/kis_coordinates_converter.h"
 #include "kis_progress_widget.h"
 #include "kis_zoom_manager.h"
 #include <KisAngleSelector.h>
@@ -378,6 +381,19 @@ void KisStatusBar::setup()
     m_velyntoraImageSizeLabel->setVisible(false);
     addStatusBarItem(m_velyntoraImageSizeLabel);
 
+    // Live image-space cursor coordinates. This is driven by the actual
+    // canvas widget, not placeholder text, and follows zoom/rotation through
+    // Krita's coordinates converter.
+    m_velyntoraCursorPositionLabel = new QLabel(m_statusBar);
+    m_velyntoraCursorPositionLabel->setObjectName("VelyntoraCursorPosition");
+    m_velyntoraCursorPositionLabel->setContentsMargins(6, 0, 6, 0);
+    m_velyntoraCursorPositionLabel->setAlignment(Qt::AlignCenter);
+    m_velyntoraCursorPositionLabel->setMinimumWidth(112);
+    m_velyntoraCursorPositionLabel->setToolTip(i18n("Cursor position on canvas"));
+    m_velyntoraCursorPositionLabel->setAccessibleName(i18n("Cursor coordinates"));
+    m_velyntoraCursorPositionLabel->setVisible(false);
+    addStatusBarItem(m_velyntoraCursorPositionLabel);
+
     QFrame *velyntoraStatusSeparator = new QFrame(m_statusBar);
     velyntoraStatusSeparator->setObjectName(QStringLiteral("VelyntoraStatusSeparator"));
     velyntoraStatusSeparator->setFrameShape(QFrame::VLine);
@@ -431,6 +447,10 @@ KisStatusBar::~KisStatusBar()
 void KisStatusBar::setView(QPointer<KisView> imageView)
 {
     if (m_imageView) {
+        if (m_velyntoraCanvasWidget) {
+            m_velyntoraCanvasWidget->removeEventFilter(this);
+            m_velyntoraCanvasWidget.clear();
+        }
         if (m_imageView->canvasBase()) {
             m_imageView->canvasBase()->canvasController()->proxyObject->disconnect(this);
         }
@@ -444,6 +464,13 @@ void KisStatusBar::setView(QPointer<KisView> imageView)
         // Rotation is part of the compact Velyntora Z bottom bar so the
         // current canvas angle stays directly accessible beside size/zoom.
         m_canvasAngleSelector->setVisible(true);
+        if (KisCanvas2 *canvas = m_viewManager->canvasBase()) {
+            m_velyntoraCanvasWidget = canvas->canvasWidget();
+            if (m_velyntoraCanvasWidget) {
+                m_velyntoraCanvasWidget->setMouseTracking(true);
+                m_velyntoraCanvasWidget->installEventFilter(this);
+            }
+        }
         connect(m_imageView, SIGNAL(sigColorSpaceChanged(const KoColorSpace*)),
                 this, SLOT(updateStatusBarProfileLabel()));
         connect(m_imageView, SIGNAL(sigProfileChanged(const KoColorProfile*)),
@@ -458,9 +485,51 @@ void KisStatusBar::setView(QPointer<KisView> imageView)
     }
     else {
         m_canvasAngleSelector->setVisible(false);
+        if (m_velyntoraCursorPositionLabel) {
+            m_velyntoraCursorPositionLabel->clear();
+            m_velyntoraCursorPositionLabel->setVisible(false);
+        }
     }
 
     imageSizeChanged();
+}
+
+bool KisStatusBar::eventFilter(QObject *watched, QEvent *event)
+{
+    if (watched == m_velyntoraCanvasWidget && m_velyntoraCursorPositionLabel && m_imageView) {
+        QPointF widgetPos;
+        bool hasPosition = false;
+
+        if (event->type() == QEvent::MouseMove) {
+            widgetPos = static_cast<QMouseEvent*>(event)->localPos();
+            hasPosition = true;
+        } else if (event->type() == QEvent::TabletMove) {
+            widgetPos = static_cast<QTabletEvent*>(event)->posF();
+            hasPosition = true;
+        } else if (event->type() == QEvent::Leave) {
+            m_velyntoraCursorPositionLabel->clear();
+            m_velyntoraCursorPositionLabel->setVisible(false);
+        }
+
+        if (hasPosition) {
+            if (KisCanvas2 *canvas = m_viewManager->canvasBase()) {
+                const QPointF imagePos = canvas->coordinatesConverter()->widgetToImage(widgetPos);
+                KisImageWSP image = m_imageView->image();
+                if (image && imagePos.x() >= 0.0 && imagePos.y() >= 0.0 &&
+                    imagePos.x() < image->width() && imagePos.y() < image->height()) {
+                    m_velyntoraCursorPositionLabel->setText(
+                        i18nc("@info:status cursor coordinates", "X: %1   Y: %2",
+                              qFloor(imagePos.x()), qFloor(imagePos.y())));
+                    m_velyntoraCursorPositionLabel->setVisible(true);
+                } else {
+                    m_velyntoraCursorPositionLabel->clear();
+                    m_velyntoraCursorPositionLabel->setVisible(false);
+                }
+            }
+        }
+    }
+
+    return QObject::eventFilter(watched, event);
 }
 
 void KisStatusBar::addStatusBarItem(QWidget *widget, int stretch, bool permanent)
