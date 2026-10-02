@@ -1,0 +1,21 @@
+name: Velyntora Drawing UI Compile Check
+
+on:
+  push:
+    branches:
+      - velyntora-drawing-ui
+  workflow_dispatch:
+
+jobs:
+  compile-drawing-ui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build extra-cmake-modules qtbase5-dev libkf5config-dev libkf5widgetsaddons-dev libkf5completion-dev libkf5coreaddons-dev libkf5guiaddons-dev libkf5i18n-dev libkf5itemviews-dev libqt5svg5-dev qtdeclarative5-dev qtquickcontrols2-5-dev libqt5x11extras5-dev libxi-dev libkf5crash-dev libpng-dev libboost-all-dev libimmer-dev libzug-dev liblager-dev libtiff-dev libwebp-dev libgsl-dev pkg-config libmypaint-dev libeigen3-dev python3-pyqt5 libexiv2-dev liblcms2-dev libfreetype6-dev libpoppler-qt5-dev libquazip5-dev libkf5kdcraw-dev libharfbuzz-dev libfontconfig1-dev libunibreak-dev libfribidi-dev libxsimd-dev qtbase5-private-dev
+      - name: Configure Krita
+        run: cmake -S . -B build -G Ninja -DBUILD_TESTING=OFF
+      - name: Compile Drawing UI
+        run: cmake --build build --target kritaui kritadefaulttools_static -- -k 0
