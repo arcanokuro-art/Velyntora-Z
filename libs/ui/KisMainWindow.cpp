@@ -547,9 +547,8 @@ KisMainWindow::KisMainWindow(QUuid uuid)
     d->mdiArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     d->mdiArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     d->mdiArea->setTabPosition(QTabWidget::North);
-    // Velyntora Z keeps the document title row visually clean. Closing a
-    // document remains available from File > Close / shortcuts; do not add a
-    // decorative close "x" to the document tab itself.
+    // Keep the native functional document-tab close button enabled.
+    // Modified documents continue through the normal Krita close flow.
     d->mdiArea->setTabsClosable(true);
     d->mdiArea->setAcceptDrops(true);
 
