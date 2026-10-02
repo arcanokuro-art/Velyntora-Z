@@ -13,6 +13,7 @@ public:
         QImage mask;
         int modelSize = 512;
         bool allowUpscale = true;
+        bool modelHandlesPipeline = true;
     };
     struct Result {
         bool ok = false;
