@@ -244,7 +244,7 @@ KisRemoveAIBackend::Result KisMiganBackend::run(const Request &request)
         // uint8 tensors without accidentally including Qt row padding.
         QString tensorError;
         const TensorInput tensorInput = makeTensorInput(pipelineSource, pipelineMask, &tensorError);
-        if (tensorInput.rgb.isEmpty() || tensorInput.mask.isEmpty()) {
+        if (!tensorInput.isValid()) {
             result.error = tensorError.isEmpty()
                 ? QStringLiteral("Could not create MI-GAN tensor input.")
                 : tensorError;
