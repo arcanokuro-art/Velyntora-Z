@@ -6,10 +6,17 @@
 class KisMiganBackend final : public KisRemoveAIBackend
 {
 public:
+    struct TensorInput {
+        QByteArray rgb;
+        QByteArray mask;
+        int width = 0;
+        int height = 0;
+    };
     bool isAvailable() const override;
     Result run(const Request &request) override;
 
 private:
+    static TensorInput makeTensorInput(const QImage &rgb, const QImage &mask, QString *error);
     static QImage compositeMaskedPatch(const QImage &sourcePatch,
                                        const QImage &generatedPatch,
                                        const QImage &removeMask);
