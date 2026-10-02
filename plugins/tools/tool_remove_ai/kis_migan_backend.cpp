@@ -40,6 +40,28 @@ QRect expandedSquare(const QRect &bounds, const QSize &limit)
 }
 }
 
+KisMiganBackend::TensorInput KisMiganBackend::makeTensorInput(const QImage &rgb,
+                                                               const QImage &mask,
+                                                               QString *error)
+{
+    TensorInput input;
+    if (rgb.isNull() || mask.isNull() || rgb.size() != mask.size()) {
+        if (error) *error = QStringLiteral("Invalid MI-GAN tensor input images.");
+        return input;
+    }
+    input.width = rgb.width();
+    input.height = rgb.height();
+    input.rgb.resize(input.width * input.height * 3);
+    input.mask.resize(input.width * input.height);
+    for (int y = 0; y < input.height; ++y) {
+        memcpy(input.rgb.data() + qsizetype(y) * input.width * 3,
+               rgb.constScanLine(y), size_t(input.width * 3));
+        memcpy(input.mask.data() + qsizetype(y) * input.width,
+               mask.constScanLine(y), size_t(input.width));
+    }
+    return input;
+}
+
 QImage KisMiganBackend::compositeMaskedPatch(const QImage &sourcePatch,
                                                    const QImage &generatedPatch,
                                                    const QImage &removeMask)
@@ -220,21 +242,18 @@ KisRemoveAIBackend::Result KisMiganBackend::run(const Request &request)
         // Pack rows into tightly contiguous buffers. This is the exact
         // memory representation the native ONNX adapter can upload as HWC
         // uint8 tensors without accidentally including Qt row padding.
-        QByteArray rgbPacked(pipelineSource.width() * pipelineSource.height() * 3, Qt::Uninitialized);
-        QByteArray maskPacked(pipelineMask.width() * pipelineMask.height(), Qt::Uninitialized);
-        for (int y = 0; y < pipelineSource.height(); ++y) {
-            memcpy(rgbPacked.data() + qsizetype(y) * pipelineSource.width() * 3,
-                   pipelineSource.constScanLine(y),
-                   size_t(pipelineSource.width() * 3));
-            memcpy(maskPacked.data() + qsizetype(y) * pipelineMask.width(),
-                   pipelineMask.constScanLine(y),
-                   size_t(pipelineMask.width()));
+        QString tensorError;
+        const TensorInput tensorInput = makeTensorInput(pipelineSource, pipelineMask, &tensorError);
+        if (tensorInput.rgb.isEmpty() || tensorInput.mask.isEmpty()) {
+            result.error = tensorError.isEmpty()
+                ? QStringLiteral("Could not create MI-GAN tensor input.")
+                : tensorError;
+            return result;
         }
 
         Q_UNUSED(rgbBytes);
         Q_UNUSED(maskBytes);
-        Q_UNUSED(rgbPacked);
-        Q_UNUSED(maskPacked);
+        Q_UNUSED(tensorInput);
         Q_UNUSED(pipelineSource);
         Q_UNUSED(pipelineMask);
         result.error = QStringLiteral("MI-GAN ONNX pipeline hook is not connected yet.");
