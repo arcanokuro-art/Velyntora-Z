@@ -213,12 +213,20 @@ KisRemoveAIBackend::Result KisMiganBackend::run(const Request &request)
         return result;
     }
 
+    // Clamp the selection to the source before expanding it. This prevents
+    // malformed/out-of-bounds masks from creating an invalid inference crop.
+    const QRect clippedMaskBounds = maskBounds.intersected(request.source.rect());
+    if (clippedMaskBounds.isEmpty()) {
+        result.error = QStringLiteral("Remove mask does not intersect the source image.");
+        return result;
+    }
+
     // Process only the masked neighborhood. This is substantially cheaper on
     // Android than resizing the entire canvas and also preserves detail away
     // from the requested removal.
-    const QRect roi = expandedSquare(maskBounds, request.source.size());
-    if (roi.isEmpty()) {
-        result.error = QStringLiteral("Could not calculate Remove region.");
+    const QRect roi = expandedSquare(clippedMaskBounds, request.source.size());
+    if (roi.isEmpty() || !request.source.rect().contains(roi)) {
+        result.error = QStringLiteral("Could not calculate a valid Remove region.");
         return result;
     }
 
