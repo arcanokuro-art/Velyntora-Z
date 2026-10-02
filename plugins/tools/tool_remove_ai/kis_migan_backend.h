@@ -12,10 +12,12 @@ public:
         int width = 0;
         int height = 0;
         qsizetype pixelCount() const { return qsizetype(width) * height; }
+        qsizetype rgbByteCount() const { return pixelCount() * 3; }
+        qsizetype maskByteCount() const { return pixelCount(); }
         bool isValid() const {
             return width > 0 && height > 0 &&
-                   rgb.size() == pixelCount() * 3 &&
-                   mask.size() == pixelCount();
+                   rgb.size() == rgbByteCount() &&
+                   mask.size() == maskByteCount();
         }
     };
     bool isAvailable() const override;
