@@ -748,8 +748,18 @@ void KoPathTool::mouseReleaseEvent(KoPointerEvent *event)
         const bool hadNoSelection = !m_pointSelection.hasSelection();
         m_currentStrategy->finishInteraction(event->modifiers());
         KUndo2Command *command = m_currentStrategy->createCommand();
-        if (command)
+        if (command) {
+            // Control-point strategies already return an undoable command.
+            // Keep Velyntora's simplified Line/Curve marker on the edited
+            // shape; the geometry change itself is therefore handled by the
+            // normal Krita undo stack instead of a parallel custom history.
+            const QList<KoPathShape*> editedShapes = m_pointSelection.selectedShapes();
+            if (editedShapes.size() == 1 &&
+                editedShapes.first()->property("velyntoraLineCurve").toBool()) {
+                editedShapes.first()->setProperty("velyntoraLineCurveEdited", true);
+            }
             d->canvas->addCommand(command);
+        }
         if (hadNoSelection && dynamic_cast<KoPathPointRubberSelectStrategy*>(m_currentStrategy.data())
                 && !m_pointSelection.hasSelection()) {
             // the click didn't do anything at all. Allow it to be used by others.
