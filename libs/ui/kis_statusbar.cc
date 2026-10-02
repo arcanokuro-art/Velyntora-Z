@@ -21,6 +21,7 @@
 #include <QLabel>
 #include <QMouseEvent>
 #include <QTabletEvent>
+#include <QtMath>
 
 #include <utility>
 
