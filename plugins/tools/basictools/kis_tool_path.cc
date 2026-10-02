@@ -300,16 +300,28 @@ void __KisToolPathLocalTool::addPathShape(KoPathShape* pathShape)
         return;
     }
 
-    // Keep the first result visually straight while storing it as a cubic
-    // that can later be shaped without exposing traditional Bezier handles.
+    // Keep the first result visually straight while storing it as a cubic.
+    // Line/Curve exposes only the two *inner* cubic controls: start CP2 and
+    // end CP1. The outer controls stay disabled, so the generic path editor
+    // cannot present the confusing four-handle Bezier workflow.
     start->removeControlPoint1();
     end->removeControlPoint2();
     start->unsetProperty(KoPathPoint::IsSmooth);
     start->unsetProperty(KoPathPoint::IsSymmetric);
     end->unsetProperty(KoPathPoint::IsSmooth);
     end->unsetProperty(KoPathPoint::IsSymmetric);
-    start->setControlPoint2(start->point() + delta / 3.0);
-    end->setControlPoint1(end->point() - delta / 3.0);
+
+    const QPointF firstCurveHandle = start->point() + delta / 3.0;
+    const QPointF secondCurveHandle = end->point() - delta / 3.0;
+    start->setControlPoint2(firstCurveHandle);
+    end->setControlPoint1(secondCurveHandle);
+
+    // Mark the shape for Velyntora's simplified post-draw editor. Keeping
+    // this state on the shape (rather than global tool state) means Undo/Redo,
+    // document switching and multiple lines cannot accidentally share handles.
+    pathShape->setProperty("velyntoraLineCurve", true);
+    pathShape->setProperty("velyntoraLineCurveControl1", firstCurveHandle);
+    pathShape->setProperty("velyntoraLineCurveControl2", secondCurveHandle);
     pathShape->normalize();
 
     // Never merge into KoCreatePathTool's legacy multi-point path workflow.
