@@ -189,6 +189,12 @@ KisRemoveAIBackend::Result KisMiganBackend::run(const Request &request)
             return result;
         }
 
+        // Runtime ownership boundary:
+        // - pipelineSource and pipelineMask stay local to this call.
+        // - a runtime implementation must copy/consume their bytes before return.
+        // - generated pixels are accepted only after validateRuntimeOutput().
+        // This prevents dangling QImage storage when inference is moved to a
+        // worker thread on Android.
         Q_UNUSED(pipelineSource);
         Q_UNUSED(pipelineMask);
         result.error = QStringLiteral("MI-GAN ONNX pipeline hook is not connected yet.");
