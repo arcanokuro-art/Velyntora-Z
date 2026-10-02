@@ -247,6 +247,20 @@ KisRemoveAIBackend::Result KisMiganBackend::run(const Request &request)
         return result;
     }
 
+    // Count selected pixels once so later stages can reject pathological
+    // requests before allocating model output or opening an undo transaction.
+    qsizetype selectedPixels = 0;
+    for (int y = 0; y < compositeMask.height(); ++y) {
+        const uchar *row = compositeMask.constScanLine(y);
+        for (int x = 0; x < compositeMask.width(); ++x) {
+            selectedPixels += row[x] == 255 ? 1 : 0;
+        }
+    }
+    if (selectedPixels <= 0) {
+        result.error = QStringLiteral("Remove selection contains no pixels.");
+        return result;
+    }
+
     // The official MI-GAN ONNX pipeline accepts arbitrary-resolution uint8
     // RGB image + binary uint8 mask and performs crop/resize/normalization,
     // inference, resize-back and blending itself. Prefer that path to avoid
@@ -334,6 +348,7 @@ KisRemoveAIBackend::Result KisMiganBackend::run(const Request &request)
         Q_UNUSED(pipelineSource);
         Q_UNUSED(pipelineMask);
         Q_UNUSED(compositeMask);
+        Q_UNUSED(selectedPixels);
         result.error = QStringLiteral("MI-GAN ONNX pipeline hook is not connected yet.");
         return result;
     }
