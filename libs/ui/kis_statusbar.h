@@ -88,7 +88,6 @@ public Q_SLOTS:
     void setHelp(const QString &t);
     void updateStatusBarProfileLabel();
     void updateSelectionToolTip();
-    void updateVelyntoraActiveTool();
 
 private Q_SLOTS:
     void updateSelectionIcon();
@@ -121,7 +120,6 @@ private:
     QToolButton *m_velyntoraForegroundColor {nullptr};
     QToolButton *m_velyntoraBackgroundColor {nullptr};
     QLabel *m_velyntoraImageSizeLabel {nullptr};
-    QLabel *m_velyntoraActiveToolLabel {nullptr};
     QLabel *m_velyntoraCursorPositionLabel {nullptr};
     QPointer<QWidget> m_velyntoraCanvasWidget;
 
