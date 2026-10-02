@@ -6,6 +6,8 @@ on:
       - velyntora-drawing-ui
   workflow_dispatch:
 
+# Validation workflow for the Velyntora Z drawing workspace.
+
 jobs:
   compile-drawing-ui:
     runs-on: ubuntu-latest
