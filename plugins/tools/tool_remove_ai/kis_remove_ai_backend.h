@@ -12,11 +12,13 @@ public:
         QImage source;
         QImage mask;
         int modelSize = 512;
+        bool allowUpscale = true;
     };
     struct Result {
         bool ok = false;
         QImage image;
         QRect sourceRect;
+        QSize inferenceSize;
         QString error;
     };
 
