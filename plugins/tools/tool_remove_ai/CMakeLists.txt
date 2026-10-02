@@ -35,6 +35,26 @@ else()
 endif()
 install(TARGETS kritatoolremoveai DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 
-# Ship the upstream MI-GAN license alongside the plugin. The model itself is
-# intentionally not embedded until the Android ONNX Runtime packaging step.
+# Ship the upstream MI-GAN license alongside the plugin.
 install(FILES THIRD_PARTY_MI_GAN_LICENSE.txt DESTINATION ${DATA_INSTALL_DIR}/velyntora/licenses)
+
+# The trained model is intentionally kept out of source control. Release and
+# Android packaging jobs may provide it explicitly; fail configuration if a
+# supplied path is wrong instead of producing an APK whose Remove tool can
+# never become available.
+set(VELYN_MIGAN_MODEL "" CACHE FILEPATH "Path to the official MI-GAN ONNX model")
+if(VELYN_MIGAN_MODEL)
+    if(NOT EXISTS "${VELYN_MIGAN_MODEL}")
+        message(FATAL_ERROR "Velyntora Remove AI: VELYN_MIGAN_MODEL does not exist: ${VELYN_MIGAN_MODEL}")
+    endif()
+    get_filename_component(VELYN_MIGAN_MODEL_EXT "${VELYN_MIGAN_MODEL}" EXT)
+    if(NOT VELYN_MIGAN_MODEL_EXT STREQUAL ".onnx")
+        message(FATAL_ERROR "Velyntora Remove AI: VELYN_MIGAN_MODEL must be an .onnx file")
+    endif()
+    install(FILES "${VELYN_MIGAN_MODEL}"
+            DESTINATION ${DATA_INSTALL_DIR}/velyntora/models
+            RENAME migan.onnx)
+    message(STATUS "Velyntora Remove AI: MI-GAN model will be packaged as models/migan.onnx")
+else()
+    message(STATUS "Velyntora Remove AI: MI-GAN model not packaged (set VELYN_MIGAN_MODEL for release builds)")
+endif()
