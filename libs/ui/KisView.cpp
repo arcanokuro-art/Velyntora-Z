@@ -1266,7 +1266,10 @@ void KisView::slotUpdateDocumentTitle()
         title += QString(" (").append(KFormat().formatByteSize(qreal(fileSizeStats.imageSize))).append(")");
     }
 
-    title += "[*]";
+    // Qt expands [*] into the modified marker when windowModified is true.
+    // Keep it separated from the live memory value so the tab reads
+    // "[No guardado] (33.5 MiB) *" rather than ")*".
+    title += " [*]";
 
     this->setWindowTitle(title);
 }
