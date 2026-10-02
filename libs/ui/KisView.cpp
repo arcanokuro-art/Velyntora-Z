@@ -1243,7 +1243,7 @@ void KisView::slotUpdateDocumentTitle()
     // explicit label, while saved/opened documents use their real file name.
     QString title;
     if (d->document->path().isEmpty()) {
-        title = i18n("[Unsaved]");
+        title = i18n("[No guardado]");
     } else {
         title = QFileInfo(d->document->path()).fileName();
         if (title.isEmpty()) {
@@ -1263,7 +1263,7 @@ void KisView::slotUpdateDocumentTitle()
     KisMemoryStatisticsServer::Statistics fileSizeStats = KisMemoryStatisticsServer::instance()->fetchMemoryStatistics(d->document->image());
 
     if (fileSizeStats.imageSize) {
-        title += QString(" (").append( KFormat().formatByteSize(qreal(fileSizeStats.imageSize))).append( ") ");
+        title += QString(" (").append(KFormat().formatByteSize(qreal(fileSizeStats.imageSize))).append(")");
     }
 
     title += "[*]";
