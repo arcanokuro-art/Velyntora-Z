@@ -15,7 +15,6 @@ install( FILES
 DESTINATION ${KDE_INSTALL_DATADIR}/krita/templates/comics/.source)
 
 install( FILES  
-    .directory 
     a4_waffle_grid.desktop  
     BD-EuroTemplate.desktop
     Comics-USTemplate.desktop
