@@ -21,7 +21,6 @@ Texture8k8bitsrgb.kra
 DESTINATION ${KDE_INSTALL_DATADIR}/krita/templates/texture/.source)
 
 install( FILES  
-    .directory
 
 Texture1024x10248bitsrgb.desktop
 Texture1k32bitscalar.desktop
