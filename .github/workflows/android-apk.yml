@@ -16,6 +16,12 @@ jobs:
       KDECI_BUILD_TYPE: Release
       KDECI_WORKDIR_PATH: /tmp/wd
       KDECI_CACHE_PATH: /tmp/kdeci-cache
+      KDECI_CC_CACHE: /tmp/kdeci-ccache
+      KDECI_PACKAGE_PROJECT: teams/ci-artifacts/krita-android-arm64-v8a
+      KDECI_GITLAB_SERVER: https://invent.kde.org/
+      KDECI_COMPRESS_PACKAGES_ON_DOWNLOAD: "False"
+      KRITACI_ARCHIVE_ARTIFACTS: "True"
+      KRITACI_SKIP_COMMON_ARTIFACTS: "False"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -62,7 +68,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "$KDECI_CACHE_PATH" "$KDECI_WORKDIR_PATH"
+          mkdir -p "$KDECI_CACHE_PATH" "$KDECI_CC_CACHE" "$KDECI_WORKDIR_PATH"
           . venv/bin/activate
           export CMAKE_TOOLCHAIN_FILE="$GITHUB_WORKSPACE/krita-deps-management/tools/android-toolchain-krita.cmake"
           export KDECI_REPO_METADATA_PATH="$GITHUB_WORKSPACE/krita-deps-management/repo-metadata"
