@@ -72,11 +72,18 @@ jobs:
           set -euxo pipefail
           . venv/bin/activate
           export CI_COMMIT_SHORT_SHA="${GITHUB_SHA::8}"
+          BUILD_CACHE="$(find "$KDECI_WORKDIR_PATH" "$GITHUB_WORKSPACE" -type f -name CMakeCache.txt -path '*_build*' -print 2>/dev/null | head -1)"
+          test -n "$BUILD_CACHE"
+          REAL_BUILD_DIR="$(dirname "$BUILD_CACHE")"
+          REAL_WORK_DIR="$(dirname "$REAL_BUILD_DIR")"
+          echo "REAL_BUILD_DIR=$REAL_BUILD_DIR"
+          echo "REAL_WORK_DIR=$REAL_WORK_DIR"
+          export KDECI_WORKDIR_PATH="$(dirname "$REAL_WORK_DIR")"
           set +e
           (
-            cd "$KDECI_WORKDIR_PATH/krita/_build"
+            cd "$REAL_BUILD_DIR"
             export ANDROID_ABI="$KDECI_ANDROID_ABI"
-            export KRITA_INSTALL_PREFIX="${KDECI_SHARED_INSTALL_PATH:-$KDECI_WORKDIR_PATH/krita/_install}"
+            export KRITA_INSTALL_PREFIX="${KDECI_SHARED_INSTALL_PATH:-$REAL_WORK_DIR/_install}"
             export KRITA_UNSTABLE_PACKAGE_SUFFIX="-${GITHUB_SHA::8}"
             cmake --build . --target create-apk --verbose
           ) 2>&1 | tee create-apk-direct.log
@@ -86,7 +93,7 @@ jobs:
           PACKAGE_SCRIPT_STATUS=${PIPESTATUS[0]}
           set -e
           echo "PACKAGE_SCRIPT_STATUS=$PACKAGE_SCRIPT_STATUS" | tee package-script-status.txt
-          GRADLE_PROJECT="$KDECI_WORKDIR_PATH/krita/_build/krita_build_apk"
+          GRADLE_PROJECT="$REAL_BUILD_DIR/krita_build_apk"
           echo "GRADLE_PROJECT=$GRADLE_PROJECT"
           if [ ! -d "$GRADLE_PROJECT" ]; then
             echo "::error::Generated Android Gradle project is missing: $GRADLE_PROJECT"
