@@ -5,7 +5,7 @@ set(kritatoolremoveai_SOURCES
 )
 
 kis_add_library(kritatoolremoveai MODULE ${kritatoolremoveai_SOURCES})
-target_link_libraries(kritatoolremoveai kritaui)
+target_link_libraries(kritatoolremoveai kritaui Qt${QT_MAJOR_VERSION}::Concurrent)
 
 # Optional native ONNX Runtime integration. Android packaging can provide
 # ONNXRUNTIME_ROOT pointing at an extracted ONNX Runtime distribution.
