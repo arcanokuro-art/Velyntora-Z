@@ -13,6 +13,8 @@
 #include <KisViewManager.h>
 #include <canvas/kis_canvas2.h>
 #include <kis_canvas_resource_provider.h>
+#include <KoPointerEvent.h>
+#include <QPainterPath>
 
 
 KisToolPath::KisToolPath(KoCanvasBase * canvas)
@@ -31,6 +33,23 @@ KisToolPath::KisToolPath(KoCanvasBase * canvas)
                 SLOT(resetCursorStyle()));
     }
 
+}
+
+void KisToolPath::paint(QPainter &painter, const KoViewConverter &converter)
+{
+    Q_UNUSED(converter);
+
+    // The pending Line/Curve segment is a decoration only. It is deliberately
+    // kept out of the paint layer until the user finishes shaping it, so the
+    // same line can be bent without erasing/repainting raster pixels.
+    if (m_lineCurveState != LineCurveState::Idle && m_lineCurveStart != m_lineCurveEnd) {
+        QPainterPath preview;
+        preview.moveTo(pixelToView(m_lineCurveStart));
+        preview.lineTo(pixelToView(m_lineCurveEnd));
+        paintToolOutline(&painter, preview);
+    }
+
+    DelegatedPathTool::paint(painter, converter);
 }
 
 void KisToolPath::resetCursorStyle()
@@ -184,6 +203,10 @@ void KisToolPath::beginPrimaryAction(KoPointerEvent* event)
         localTool()->cancelPath();
     }
 
+    m_lineCurveStart = convertToPixelCoordAndSnap(event);
+    m_lineCurveEnd = m_lineCurveStart;
+    m_lineCurveState = LineCurveState::DrawingStraight;
+
     DelegatedPathTool::mousePressEvent(event);
 }
 
@@ -203,6 +226,10 @@ void KisToolPath::continuePrimaryAction(KoPointerEvent *event)
     // Only update the live segment while an actual Line/Curve gesture is
     // active. This prevents hover/synthesized touch moves from feeding the
     // legacy path state machine after the segment has already been committed.
+    if (m_lineCurveState == LineCurveState::DrawingStraight) {
+        m_lineCurveEnd = convertToPixelCoordAndSnap(event);
+        canvas()->updateCanvas(QRectF());
+    }
     mouseMoveEvent(event);
 }
 
@@ -245,6 +272,9 @@ void KisToolPath::deactivate()
     if (localTool()->pathStarted()) {
         localTool()->cancelPath();
     }
+    m_lineCurveState = LineCurveState::Idle;
+    m_lineCurveStart = QPointF();
+    m_lineCurveEnd = QPointF();
 
     DelegatedPathTool::deactivate();
 }
