@@ -11,6 +11,7 @@
 #include <kis_transaction.h>
 #include <kis_image.h>
 #include <QIcon>
+#include <QtConcurrent>
 #include <klocalizedstring.h>
 
 struct KisToolRemoveAI::Private {
@@ -19,6 +20,11 @@ struct KisToolRemoveAI::Private {
     qreal radius = 40.0;
     QPainterPath outline;
     KisMiganBackend backend;
+    QFutureWatcher<KisRemoveAIBackend::Result> watcher;
+    KisNodeSP pendingNode;
+    KisImageSP pendingImage;
+    KisPaintDeviceSP pendingDevice;
+    bool inferenceRunning = false;
 };
 
 KisToolRemoveAI::KisToolRemoveAI(KoCanvasBase *canvas)
@@ -30,6 +36,8 @@ KisToolRemoveAI::KisToolRemoveAI(KoCanvasBase *canvas)
     m_d->painter.setPaintColor(KoColor(Qt::white, m_d->mask->colorSpace()));
     m_d->painter.setFillStyle(KisPainter::FillStyleForegroundColor);
     setSupportOutline(true);
+    connect(&m_d->watcher, &QFutureWatcher<KisRemoveAIBackend::Result>::finished,
+            this, &KisToolRemoveAI::finishInference);
 }
 
 KisToolRemoveAI::~KisToolRemoveAI()
@@ -64,6 +72,15 @@ void KisToolRemoveAI::beginPrimaryAction(KoPointerEvent *event)
         if (KisCanvas2 *kritaCanvas = dynamic_cast<KisCanvas2 *>(canvas())) {
             kritaCanvas->viewManager()->showFloatingMessage(
                 i18n("Select a paint layer to use Remove"), QIcon(), 2000);
+        }
+        event->ignore();
+        return;
+    }
+
+    if (m_d->inferenceRunning) {
+        if (KisCanvas2 *kritaCanvas = dynamic_cast<KisCanvas2 *>(canvas())) {
+            kritaCanvas->viewManager()->showFloatingMessage(
+                i18n("Remove AI is still processing"), QIcon(), 1500);
         }
         event->ignore();
         return;
@@ -123,8 +140,36 @@ void KisToolRemoveAI::endPrimaryAction(KoPointerEvent *event)
     request.allowUpscale = true;
     request.modelHandlesPipeline = true;
 
-    const KisRemoveAIBackend::Result result = m_d->backend.run(request);
-    if (!result.isReadyForCommit()) {
+    // Run model inference away from the GUI thread. The request owns detached
+    // QImage snapshots, so the worker never touches Krita paint devices.
+    m_d->pendingNode = targetNode;
+    m_d->pendingImage = current;
+    m_d->pendingDevice = device;
+    m_d->inferenceRunning = true;
+    m_d->watcher.setFuture(QtConcurrent::run([this, request]() {
+        return m_d->backend.run(request);
+    }));
+
+    if (KisCanvas2 *kritaCanvas = dynamic_cast<KisCanvas2 *>(canvas())) {
+        kritaCanvas->viewManager()->showFloatingMessage(
+            i18n("Remove AI is processing..."), QIcon(), 1500);
+    }
+}
+
+void KisToolRemoveAI::finishInference()
+{
+    m_d->inferenceRunning = false;
+    const KisRemoveAIBackend::Result result = m_d->watcher.result();
+
+    const KisNodeSP targetNode = m_d->pendingNode;
+    const KisImageSP image = m_d->pendingImage;
+    const KisPaintDeviceSP device = m_d->pendingDevice;
+    m_d->pendingNode.clear();
+    m_d->pendingImage.clear();
+    m_d->pendingDevice.clear();
+
+    KisPaintLayer *paintLayer = qobject_cast<KisPaintLayer *>(targetNode.data());
+    if (!result.isReadyForCommit() || !paintLayer || !image || !device) {
         if (KisCanvas2 *kritaCanvas = dynamic_cast<KisCanvas2 *>(canvas())) {
             kritaCanvas->viewManager()->showFloatingMessage(
                 result.commitValidationError(), QIcon(), 3000);
@@ -135,9 +180,9 @@ void KisToolRemoveAI::endPrimaryAction(KoPointerEvent *event)
     const QImage patch = result.writeBackImage();
     if (patch.isNull()) return;
 
-    // Inference may become asynchronous later. Keep the commit guarded now so
-    // a document/layer switch can never write a result into the wrong target.
-    if (currentImage() != current || currentNode() != targetNode ||
+    // The UI-thread completion step is the only place that may touch the
+    // active paint device. Reject stale results after a document/layer switch.
+    if (currentImage() != image || currentNode() != targetNode ||
         paintLayer->paintDevice() != device) {
         if (KisCanvas2 *kritaCanvas = dynamic_cast<KisCanvas2 *>(canvas())) {
             kritaCanvas->viewManager()->showFloatingMessage(
@@ -151,7 +196,7 @@ void KisToolRemoveAI::endPrimaryAction(KoPointerEvent *event)
                               result.documentWriteBackOrigin().x(),
                               result.documentWriteBackOrigin().y());
     paintLayer->setDirty(result.writeBackRect());
-    transaction.commit(current->undoAdapter());
+    transaction.commit(image->undoAdapter());
 }
 
 void KisToolRemoveAI::paint(QPainter &painter, const KoViewConverter &converter)
