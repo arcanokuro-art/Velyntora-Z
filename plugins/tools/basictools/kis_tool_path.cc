@@ -225,7 +225,11 @@ void KisToolPath::endPrimaryAction(KoPointerEvent *event)
         return;
     }
 
-    localTool()->endPath();
+    // KoCreatePathTool::mouseReleaseEvent() appends a provisional third
+    // point for its legacy multi-click Bezier workflow. Line/Curve must drop
+    // that point before committing, otherwise addPathShape() correctly rejects
+    // the gesture for having more than the intended two anchors.
+    localTool()->endPathWithoutLastPoint();
 }
 
 void KisToolPath::deactivate()
