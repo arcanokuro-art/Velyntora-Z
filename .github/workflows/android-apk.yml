@@ -75,10 +75,29 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
-          PACKAGING_DIR="$KDECI_WORKDIR_PATH/krita/_packaging"
-          test -d "$PACKAGING_DIR"
-          find "$PACKAGING_DIR" -maxdepth 1 -type f -name "*.apk" -print | tee apk-files.txt
+          : > apk-files.txt
+          for root in "$KDECI_WORKDIR_PATH/krita" "$GITHUB_WORKSPACE"; do
+            if [ -d "$root" ]; then
+              find "$root" -type f \( -name "*.apk" -o -name "*.aab" \) -print | tee -a android-package-files.txt
+              find "$root" -type f -name "*.apk" -print >> apk-files.txt
+            fi
+          done
+          echo "=== Android package candidates ==="
+          cat android-package-files.txt || true
+          echo "=== Packaging/build output directories ==="
+          find "$KDECI_WORKDIR_PATH/krita" -maxdepth 5 -type d \( -name "_packaging" -o -name "outputs" -o -name "apk" -o -name "krita_build_apk" \) -print | tee package-directories.txt || true
           test -s apk-files.txt
+
+      - name: Upload package diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Velyntora-Android-package-diagnostics
+          path: |
+            apk-files.txt
+            android-package-files.txt
+            package-directories.txt
+          if-no-files-found: warn
 
       - name: Collect APK
         shell: bash
