@@ -28,6 +28,7 @@ public:
 
     using KoCreatePathTool::createOptionWidgets;
     using KoCreatePathTool::endPath;
+    using KoCreatePathTool::endPathWithoutLastPoint;
     using KoCreatePathTool::cancelPath;
     using KoCreatePathTool::removeLastPoint;
 
