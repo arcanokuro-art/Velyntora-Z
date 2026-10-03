@@ -1,0 +1,83 @@
+name: Velyntora Android APK
+
+on:
+  push:
+    branches:
+      - velyntora-android-apk
+  workflow_dispatch:
+
+jobs:
+  android-arm64:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+    env:
+      KDECI_ANDROID_ABI: arm64-v8a
+      KRITACI_ANDROID_PACKAGE_TYPE: debug
+      KDECI_BUILD_TYPE: Release
+      KDECI_WORKDIR_PATH: /tmp/wd
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Install host tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-venv python3-pip ninja-build cmake git curl unzip zip openjdk-17-jdk
+
+      - name: Install Android SDK and NDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android packages
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;22.1.7171670"
+          echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/22.1.7171670" >> "$GITHUB_ENV"
+          echo "KDECI_ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "KDECI_ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/22.1.7171670" >> "$GITHUB_ENV"
+
+      - name: Prepare Krita Android build tooling
+        run: |
+          git clone https://invent.kde.org/packaging/krita-deps-management.git --depth=1
+          git clone https://invent.kde.org/packaging/krita-ci-utilities.git krita-deps-management/ci-utilities --depth=1
+          python3 -m venv venv
+          . venv/bin/activate
+          pip install --upgrade pip
+          pip install -r krita-deps-management/requirements.txt
+
+      - name: Resolve Android dependency manifest
+        run: |
+          . venv/bin/activate
+          python3 -u krita-deps-management/tools/replace-branch-in-seed-file.py krita-deps-management/latest/krita-deps.yml -p -o branch-corrected-deps.yml -d master
+          python3 -u krita-deps-management/tools/generate-deps-file.py -s branch-corrected-deps.yml -o .kde-ci.yml
+
+      - name: Build Velyntora for Android arm64
+        run: |
+          . venv/bin/activate
+          export CMAKE_TOOLCHAIN_FILE="$GITHUB_WORKSPACE/krita-deps-management/tools/android-toolchain-krita.cmake"
+          export KDECI_REPO_METADATA_PATH="$GITHUB_WORKSPACE/krita-deps-management/repo-metadata"
+          export KDECI_SKIP_ECM_ANDROID_TOOLCHAIN=True
+          export KDECI_EXTRA_CMAKE_ARGS="-DHIDE_SAFE_ASSERTS=OFF -DBUILD_TESTING=OFF"
+          python3 -u krita-deps-management/ci-utilities/run-ci-build.py --project krita --branch velyntora-android-apk --platform Android/arm64-v8a/Qt5/Shared --only-build --skip-publishing 2>&1 | tee build-krita-android.log
+
+      - name: Package debug APK
+        run: |
+          . venv/bin/activate
+          python3 -u build-tools/ci-scripts/build-android-package.py 2>&1 | tee build-apk.log
+
+      - name: Locate APK
+        run: |
+          find /tmp/wd "$GITHUB_WORKSPACE" -type f -name "*.apk" -print | tee apk-files.txt
+          test -s apk-files.txt
+
+      - name: Collect APK
+        run: |
+          mkdir -p apk-output
+          while IFS= read -r apk; do cp "$apk" apk-output/; done < apk-files.txt
+
+      - name: Upload Velyntora APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Velyntora-Android-arm64-debug
+          path: apk-output/*.apk
+          if-no-files-found: error
