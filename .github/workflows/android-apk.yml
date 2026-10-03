@@ -67,9 +67,20 @@ jobs:
           python3 -u krita-deps-management/ci-utilities/run-ci-build.py --project krita --branch velyntora-android-apk --platform Android/arm64-v8a/Qt5/Shared --only-build --skip-publishing 2>&1 | tee build-krita-android.log
 
       - name: Package debug APK
+        shell: bash
         run: |
+          set -euxo pipefail
           . venv/bin/activate
-          python3 -u build-tools/ci-scripts/build-android-package.py 2>&1 | tee build-apk.log
+          export CI_COMMIT_SHORT_SHA="${GITHUB_SHA::8}"
+          python3 -u build-tools/ci-scripts/build-android-package.py --package-type debug 2>&1 | tee build-apk.log
+          echo "=== create-apk output tree ==="
+          find "$KDECI_WORKDIR_PATH/krita/_build/krita_build_apk" -maxdepth 8 -type f -print 2>/dev/null | tee create-apk-files.txt || true
+          echo "=== Gradle APK output tree ==="
+          find "$KDECI_WORKDIR_PATH/krita/_build/krita_build_apk/build/outputs" -maxdepth 8 -type f -print 2>/dev/null | tee gradle-output-files.txt || true
+          if ! find "$KDECI_WORKDIR_PATH/krita" "$GITHUB_WORKSPACE" -type f -name "*.apk" -print -quit | grep -q .; then
+            echo "::error::Krita create-apk target returned success but produced no APK."
+            exit 1
+          fi
 
       - name: Locate APK
         shell: bash
@@ -97,6 +108,9 @@ jobs:
             apk-files.txt
             android-package-files.txt
             package-directories.txt
+            build-apk.log
+            create-apk-files.txt
+            gradle-output-files.txt
           if-no-files-found: warn
 
       - name: Collect APK
