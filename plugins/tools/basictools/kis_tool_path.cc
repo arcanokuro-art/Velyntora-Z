@@ -46,14 +46,22 @@ void KisToolPath::resetCursorStyle()
 
 void KisToolPath::requestStrokeEnd()
 {
-    // Line/Curve commits the currently previewed segment. Do not use
-    // endPathWithoutLastPoint(): that behavior belongs to the legacy
-    // multi-click Bezier workflow and can discard the line endpoint.
-    if (!nodeEditable() || !localTool()->pathStarted()) {
+    // KoCreatePathTool keeps a provisional trailing point while a path is
+    // live. Line/Curve owns only the two anchors already drawn, so a forced
+    // stroke end (tool switch, canvas state change, etc.) must discard that
+    // provisional point exactly like the normal primary-release path does.
+    // Calling endPath() here can otherwise hand addPathShape() three points,
+    // which it correctly rejects and makes the visible segment disappear.
+    if (!localTool()->pathStarted()) {
         return;
     }
 
-    localTool()->endPath();
+    if (!nodeEditable()) {
+        localTool()->cancelPath();
+        return;
+    }
+
+    localTool()->endPathWithoutLastPoint();
 }
 
 void KisToolPath::requestStrokeCancellation()
