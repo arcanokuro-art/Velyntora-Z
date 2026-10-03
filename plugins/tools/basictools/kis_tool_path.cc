@@ -268,6 +268,22 @@ void KisToolPath::endPrimaryAction(KoPointerEvent *event)
         return;
     }
 
+    // The curvature drag is our own lightweight interaction; it was never
+    // forwarded to KoCreatePathTool, so its release must not be forwarded
+    // either. Commit the still-live two-anchor delegated shape exactly once.
+    if (m_lineCurveState == LineCurveState::Curving) {
+        if (!nodeEditable()) {
+            localTool()->cancelPath();
+            m_lineCurveState = LineCurveState::Idle;
+            return;
+        }
+        m_lineCurveControl = convertToPixelCoordAndSnap(event);
+        localTool()->endPathWithoutLastPoint();
+        m_lineCurveState = LineCurveState::Idle;
+        canvas()->updateCanvas(QRectF());
+        return;
+    }
+
     // If the target became non-editable while dragging (layer lock, node
     // switch, etc.), cancel rather than committing into an invalid target.
     if (!nodeEditable()) {
