@@ -44,8 +44,15 @@ void KisToolPath::paint(QPainter &painter, const KoViewConverter &converter)
     // same line can be bent without erasing/repainting raster pixels.
     if (m_lineCurveState != LineCurveState::Idle && m_lineCurveStart != m_lineCurveEnd) {
         QPainterPath preview;
-        preview.moveTo(pixelToView(m_lineCurveStart));
-        preview.lineTo(pixelToView(m_lineCurveEnd));
+        const QPointF start = pixelToView(m_lineCurveStart);
+        const QPointF end = pixelToView(m_lineCurveEnd);
+        preview.moveTo(start);
+        if (m_lineCurveState == LineCurveState::Curving) {
+            const QPointF control = pixelToView(m_lineCurveControl);
+            preview.quadTo(control, end);
+        } else {
+            preview.lineTo(end);
+        }
         paintToolOutline(&painter, preview);
     }
 
@@ -196,15 +203,26 @@ void KisToolPath::beginPrimaryAction(KoPointerEvent* event)
         return;
     }
 
-    // A Line/Curve gesture is strictly single-segment. If a stale path is
-    // somehow still active, cancel it instead of appending another anchor and
-    // recreating the old multi-click Bezier workflow.
+    // Once the straight segment exists, the next primary drag belongs to the
+    // curvature phase. Do not feed that press back into KoCreatePathTool: its
+    // legacy multi-click path logic would cancel/append anchors instead of
+    // bending the pending two-anchor segment.
+    if (m_lineCurveState == LineCurveState::AwaitingCurve) {
+        m_lineCurveControl = convertToPixelCoordAndSnap(event);
+        m_lineCurveState = LineCurveState::Curving;
+        return;
+    }
+
+    // A fresh Line/Curve gesture is strictly single-segment. If a stale path
+    // somehow survived outside the pending-curvature state, cancel it rather
+    // than recreating the old multi-click Bezier workflow.
     if (localTool()->pathStarted()) {
         localTool()->cancelPath();
     }
 
     m_lineCurveStart = convertToPixelCoordAndSnap(event);
     m_lineCurveEnd = m_lineCurveStart;
+    m_lineCurveControl = QPointF();
     m_lineCurveState = LineCurveState::DrawingStraight;
 
     DelegatedPathTool::mousePressEvent(event);
@@ -212,6 +230,17 @@ void KisToolPath::beginPrimaryAction(KoPointerEvent* event)
 
 void KisToolPath::continuePrimaryAction(KoPointerEvent *event)
 {
+    if (m_lineCurveState == LineCurveState::Curving) {
+        if (!nodeEditable()) {
+            localTool()->cancelPath();
+            m_lineCurveState = LineCurveState::Idle;
+            return;
+        }
+        m_lineCurveControl = convertToPixelCoordAndSnap(event);
+        canvas()->updateCanvas(QRectF());
+        return;
+    }
+
     if (!localTool()->pathStarted()) {
         return;
     }
