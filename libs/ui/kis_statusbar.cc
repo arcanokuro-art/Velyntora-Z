@@ -184,7 +184,15 @@ void KisStatusBar::setup()
             "QToolButton:pressed { border:2px solid palette(highlight); }")
             .arg(color.name(QColor::HexArgb)));
 
-        connect(swatch, &QToolButton::clicked, this, [this, color]() {
+        connect(swatch, &QToolButton::clicked, this, [this, swatch, color]() {
+            // A touch long-press opens the removal menu. Qt may still emit a
+            // clicked() for that same physical gesture after the nested menu
+            // closes, so consume exactly that click instead of globally
+            // blocking all button signals.
+            if (swatch->property("velyntoraLongPressConsumed").toBool()) {
+                swatch->setProperty("velyntoraLongPressConsumed", false);
+                return;
+            }
             m_viewManager->canvasResourceProvider()->setFGColor(
                 KoColor(color, KoColorSpaceRegistry::instance()->rgb8()));
         });
@@ -231,33 +239,23 @@ void KisStatusBar::setup()
             QTimer *holdTimer = new QTimer(swatch);
             holdTimer->setSingleShot(true);
             holdTimer->setInterval(650);
-            connect(swatch, &QToolButton::pressed, holdTimer,
-                    qOverload<>(&QTimer::start));
+            connect(swatch, &QToolButton::pressed, this, [swatch, holdTimer]() {
+                swatch->setProperty("velyntoraLongPressConsumed", false);
+                holdTimer->start();
+            });
             connect(swatch, &QToolButton::released, holdTimer, &QTimer::stop);
             connect(holdTimer, &QTimer::timeout, this, [swatch, removeCustomColor]() {
-                // Keep signals blocked until the physical press is released.
-                // QMenu::exec() runs a nested event loop; restoring signals as
-                // soon as the menu closes allowed QAbstractButton to emit the
-                // normal clicked() signal for the same long press, selecting a
-                // color while the user was trying to remove it.
+                // Mark this physical gesture as consumed before entering the
+                // menu's nested event loop. The following clicked() signal, if
+                // Qt emits one, is ignored once and the next normal tap works
+                // without relying on signal-block/unblock event ordering.
+                swatch->setProperty("velyntoraLongPressConsumed", true);
                 swatch->setDown(false);
-                swatch->blockSignals(true);
                 QMenu menu;
                 QAction *remove = menu.addAction(i18n("Remove custom color"));
-                const bool shouldRemove =
-                    menu.exec(swatch->mapToGlobal(swatch->rect().center())) == remove;
-                if (shouldRemove) {
+                if (menu.exec(swatch->mapToGlobal(swatch->rect().center())) == remove) {
                     removeCustomColor();
-                    return;
                 }
-
-                // Qt 5 (used by the current Krita build) has no
-                // Qt::SingleShotConnection. Queue the unblock instead: the
-                // release that completed the long press is processed first,
-                // and normal swatch signals are restored for the next tap.
-                QTimer::singleShot(0, swatch, [swatch]() {
-                    swatch->blockSignals(false);
-                });
             });
         }
         return swatch;
