@@ -9,39 +9,74 @@
 #include <cstring>
 #include <limits>
 #include <array>
+#include <memory>
+#include <mutex>
 #ifdef VELYN_REMOVE_HAS_ONNXRUNTIME
 #include <onnxruntime_cxx_api.h>
 #endif
 
 namespace {
 #ifdef VELYN_REMOVE_HAS_ONNXRUNTIME
+struct MiganRuntimeSession {
+    Ort::Env env{ORT_LOGGING_LEVEL_WARNING, "VelyntoraRemoveAI"};
+    Ort::SessionOptions options;
+    std::unique_ptr<Ort::Session> session;
+    QString loadedModelPath;
+    std::mutex mutex;
+
+    MiganRuntimeSession()
+    {
+        options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_EXTENDED);
+    }
+
+    Ort::Session *ensureSession(const QString &modelPath)
+    {
+        if (session && loadedModelPath == modelPath) {
+            return session.get();
+        }
+
+#ifdef Q_OS_WIN
+        const std::wstring nativeModelPath = modelPath.toStdWString();
+        session = std::make_unique<Ort::Session>(env, nativeModelPath.c_str(), options);
+#else
+        const QByteArray nativeModelPath = QFile::encodeName(modelPath);
+        session = std::make_unique<Ort::Session>(env, nativeModelPath.constData(), options);
+#endif
+        loadedModelPath = modelPath;
+        return session.get();
+    }
+};
+
+MiganRuntimeSession &miganRuntimeSession()
+{
+    static MiganRuntimeSession runtime;
+    return runtime;
+}
+
 QImage runMiganOnnx(const QString &modelPath,
                     const KisMiganBackend::TensorInput &input,
                     const QByteArray &imageNchw,
                     QString *error)
 {
     try {
-        Ort::Env env(ORT_LOGGING_LEVEL_WARNING, "VelyntoraRemoveAI");
-        Ort::SessionOptions options;
-        options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_EXTENDED);
-#ifdef Q_OS_WIN
-        const std::wstring nativeModelPath = modelPath.toStdWString();
-        Ort::Session session(env, nativeModelPath.c_str(), options);
-#else
-        const QByteArray nativeModelPath = QFile::encodeName(modelPath);
-        Ort::Session session(env, nativeModelPath.constData(), options);
-#endif
+        MiganRuntimeSession &runtime = miganRuntimeSession();
+        std::lock_guard<std::mutex> lock(runtime.mutex);
+        Ort::Session *session = runtime.ensureSession(modelPath);
+        if (!session) {
+            if (error) *error = QStringLiteral("Could not create the MI-GAN ONNX session.");
+            return {};
+        }
 
         // Fail fast if a different/incompatible ONNX model was packaged.
         // The official MI-GAN pipeline contract is exactly image + mask -> result.
-        if (session.GetInputCount() != 2 || session.GetOutputCount() != 1) {
+        if (session->GetInputCount() != 2 || session->GetOutputCount() != 1) {
             if (error) *error = QStringLiteral("Packaged MI-GAN model has an incompatible input/output contract.");
             return {};
         }
         Ort::AllocatorWithDefaultOptions allocator;
-        const auto input0 = session.GetInputNameAllocated(0, allocator);
-        const auto input1 = session.GetInputNameAllocated(1, allocator);
-        const auto output0 = session.GetOutputNameAllocated(0, allocator);
+        const auto input0 = session->GetInputNameAllocated(0, allocator);
+        const auto input1 = session->GetInputNameAllocated(1, allocator);
+        const auto output0 = session->GetOutputNameAllocated(0, allocator);
         const bool inputsOk =
             (qstrcmp(input0.get(), "image") == 0 && qstrcmp(input1.get(), "mask") == 0) ||
             (qstrcmp(input0.get(), "mask") == 0 && qstrcmp(input1.get(), "image") == 0);
@@ -64,7 +99,7 @@ QImage runMiganOnnx(const QString &modelPath,
         const char *inputNames[] = {"image", "mask"};
         const char *outputNames[] = {"result"};
         std::array<Ort::Value, 2> inputs{std::move(imageTensor), std::move(maskTensor)};
-        auto outputs = session.Run(Ort::RunOptions{nullptr}, inputNames, inputs.data(),
+        auto outputs = session->Run(Ort::RunOptions{nullptr}, inputNames, inputs.data(),
                                    inputs.size(), outputNames, 1);
         if (outputs.size() != 1 || !outputs[0].IsTensor()) {
             if (error) *error = QStringLiteral("MI-GAN returned no result tensor.");
