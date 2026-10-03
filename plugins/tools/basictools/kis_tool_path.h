@@ -27,7 +27,9 @@ public:
     void addPathShape(KoPathShape* pathShape) override;
 
     using KoCreatePathTool::createOptionWidgets;
-    using KoCreatePathTool::endPath;
+    // Line/Curve must always discard KoCreatePathTool's provisional trailing
+    // point. Do not expose endPath(): it is the legacy multi-point Bezier
+    // completion path and can accidentally reintroduce a third anchor.
     using KoCreatePathTool::endPathWithoutLastPoint;
     using KoCreatePathTool::cancelPath;
     using KoCreatePathTool::removeLastPoint;
