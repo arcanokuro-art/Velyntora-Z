@@ -72,8 +72,18 @@ jobs:
           set -euxo pipefail
           . venv/bin/activate
           export CI_COMMIT_SHORT_SHA="${GITHUB_SHA::8}"
-          BUILD_CACHE="$(find "$KDECI_WORKDIR_PATH" "$GITHUB_WORKSPACE" -type f -name CMakeCache.txt -path '*_build*' -print 2>/dev/null | head -1)"
-          test -n "$BUILD_CACHE"
+          find "$KDECI_WORKDIR_PATH" "$GITHUB_WORKSPACE" -type f -name CMakeCache.txt -print 2>/dev/null | sort -u | tee cmake-cache-files.txt || true
+          BUILD_CACHE=""
+          while IFS= read -r cache; do
+            if grep -Eq 'ANDROID|CMAKE_ANDROID|arm64-v8a|KDECI_ANDROID' "$cache"; then
+              BUILD_CACHE="$cache"
+              break
+            fi
+          done < cmake-cache-files.txt
+          if [ -z "$BUILD_CACHE" ]; then
+            echo "::error::Could not identify the Android Krita CMake build directory."
+            exit 1
+          fi
           REAL_BUILD_DIR="$(dirname "$BUILD_CACHE")"
           REAL_WORK_DIR="$(dirname "$REAL_BUILD_DIR")"
           echo "REAL_BUILD_DIR=$REAL_BUILD_DIR"
@@ -153,6 +163,7 @@ jobs:
             package-script-status.txt
             create-apk-direct.log
             create-apk-status.txt
+            cmake-cache-files.txt
           if-no-files-found: warn
 
       - name: Collect APK
