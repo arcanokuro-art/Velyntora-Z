@@ -70,6 +70,11 @@ void KisToolPath::resetCursorStyle()
     overrideCursorIfNotEditable();
 }
 
+void KisToolPath::clearLineCurvePreview()
+{
+    clearLineCurvePreview();
+}
+
 void KisToolPath::requestStrokeEnd()
 {
     // KoCreatePathTool keeps a provisional trailing point while a path is
@@ -84,20 +89,12 @@ void KisToolPath::requestStrokeEnd()
 
     if (!nodeEditable()) {
         localTool()->cancelPath();
-        m_lineCurveState = LineCurveState::Idle;
-        m_lineCurveStart = QPointF();
-        m_lineCurveEnd = QPointF();
-        m_lineCurveControl = QPointF();
-        canvas()->updateCanvas(QRectF());
+        clearLineCurvePreview();
         return;
     }
 
     localTool()->endPathWithoutLastPoint();
-    m_lineCurveState = LineCurveState::Idle;
-    m_lineCurveStart = QPointF();
-    m_lineCurveEnd = QPointF();
-    m_lineCurveControl = QPointF();
-    canvas()->updateCanvas(QRectF());
+    clearLineCurvePreview();
 }
 
 void KisToolPath::requestStrokeCancellation()
@@ -109,11 +106,7 @@ void KisToolPath::requestStrokeCancellation()
         localTool()->cancelPath();
     }
 
-    m_lineCurveState = LineCurveState::Idle;
-    m_lineCurveStart = QPointF();
-    m_lineCurveEnd = QPointF();
-    m_lineCurveControl = QPointF();
-    canvas()->updateCanvas(QRectF());
+    clearLineCurvePreview();
 }
 
 KisPopupWidgetInterface* KisToolPath::popupWidget()
@@ -146,6 +139,7 @@ bool KisToolPath::eventFilter(QObject *obj, QEvent *event)
     // right-click/tablet events from operating on stale path state.
     if (!nodeEditable()) {
         localTool()->cancelPath();
+        clearLineCurvePreview();
         return true;
     }
     if (event->type() == QEvent::MouseButtonPress ||
@@ -156,12 +150,14 @@ bool KisToolPath::eventFilter(QObject *obj, QEvent *event)
             // removeLastPoint() intentionally does nothing at this size, so a
             // secondary click must cancel the whole live segment instead.
             localTool()->cancelPath();
+            clearLineCurvePreview();
             return true;
         }
     } else if (event->type() == QEvent::TabletPress) {
         QTabletEvent *tabletEvent = static_cast<QTabletEvent*>(event);
         if (tabletEvent->button() == Qt::RightButton) {
             localTool()->cancelPath();
+            clearLineCurvePreview();
             return true;
         }
     }
