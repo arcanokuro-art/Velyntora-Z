@@ -260,11 +260,24 @@ void KisToolPath::endPrimaryAction(KoPointerEvent *event)
         return;
     }
 
-    // KoCreatePathTool::mouseReleaseEvent() appends a provisional third
-    // point for its legacy multi-click Bezier workflow. Line/Curve must drop
-    // that point before committing, otherwise addPathShape() correctly rejects
-    // the gesture for having more than the intended two anchors.
+    // The first release finishes only the straight construction gesture.
+    // Keep the delegated shape alive and retain our lightweight decoration so
+    // the same segment can be bent before any pixels are rasterized.
+    if (m_lineCurveState == LineCurveState::DrawingStraight) {
+        if (m_lineCurveStart == m_lineCurveEnd) {
+            localTool()->cancelPath();
+            m_lineCurveState = LineCurveState::Idle;
+            return;
+        }
+        m_lineCurveState = LineCurveState::AwaitingCurve;
+        canvas()->updateCanvas(QRectF());
+        return;
+    }
+
+    // A later explicit finalization discards KoCreatePathTool's provisional
+    // trailing point and commits exactly the two Line/Curve anchors.
     localTool()->endPathWithoutLastPoint();
+    m_lineCurveState = LineCurveState::Idle;
 }
 
 void KisToolPath::deactivate()
