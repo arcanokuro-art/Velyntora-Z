@@ -405,16 +405,30 @@ void __KisToolPathLocalTool::addPathShape(KoPathShape* pathShape)
         return;
     }
 
-    // Keep the first result visually straight while storing it as a cubic
-    // that can later be shaped without exposing traditional Bezier handles.
+    // Store the same curve shown by the simplified preview. A quadratic
+    // segment P0-Q-P2 is represented exactly as a cubic with:
+    // C1=P0+2/3(Q-P0), C2=P2+2/3(Q-P2). When no curvature gesture was used,
+    // the midpoint produces the original straight cubic segment.
     start->removeControlPoint1();
     end->removeControlPoint2();
     start->unsetProperty(KoPathPoint::IsSmooth);
     start->unsetProperty(KoPathPoint::IsSymmetric);
     end->unsetProperty(KoPathPoint::IsSmooth);
     end->unsetProperty(KoPathPoint::IsSymmetric);
-    start->setControlPoint2(start->point() + delta / 3.0);
-    end->setControlPoint1(end->point() - delta / 3.0);
+
+    QPointF quadraticControl = (start->point() + end->point()) / 2.0;
+    if (m_parentTool->m_lineCurveState == KisToolPath::LineCurveState::Curving) {
+        // The preview state is stored in image coordinates while the delegated
+        // KoPathShape uses document coordinates. Reuse the canvas converter so
+        // the committed cubic follows the on-canvas preview at any zoom/resolution.
+        KisCanvas2 *kritaCanvas = dynamic_cast<KisCanvas2*>(m_parentTool->canvas());
+        if (kritaCanvas) {
+            quadraticControl = kritaCanvas->coordinatesConverter()->imageToDocument(
+                m_parentTool->m_lineCurveControl);
+        }
+    }
+    start->setControlPoint2(start->point() + (quadraticControl - start->point()) * (2.0 / 3.0));
+    end->setControlPoint1(end->point() + (quadraticControl - end->point()) * (2.0 / 3.0));
     pathShape->normalize();
 
     // Never merge into KoCreatePathTool's legacy multi-point path workflow.
