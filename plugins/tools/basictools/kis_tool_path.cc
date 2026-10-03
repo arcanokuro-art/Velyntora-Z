@@ -84,22 +84,36 @@ void KisToolPath::requestStrokeEnd()
 
     if (!nodeEditable()) {
         localTool()->cancelPath();
+        m_lineCurveState = LineCurveState::Idle;
+        m_lineCurveStart = QPointF();
+        m_lineCurveEnd = QPointF();
+        m_lineCurveControl = QPointF();
+        canvas()->updateCanvas(QRectF());
         return;
     }
 
     localTool()->endPathWithoutLastPoint();
+    m_lineCurveState = LineCurveState::Idle;
+    m_lineCurveStart = QPointF();
+    m_lineCurveEnd = QPointF();
+    m_lineCurveControl = QPointF();
+    canvas()->updateCanvas(QRectF());
 }
 
 void KisToolPath::requestStrokeCancellation()
 {
-    // Cancellation is idempotent for Line/Curve: only touch the delegated
-    // path state while a gesture actually exists. Ignore cancellation after
-    // commit so delayed Android/stylus events cannot affect the next segment.
-    if (!localTool()->pathStarted()) {
-        return;
+    // Cancellation must clear both KoCreatePathTool's delegated path and our
+    // independent preview state. Otherwise Escape/right-click/layer changes
+    // can leave a ghost Line/Curve decoration on the canvas.
+    if (localTool()->pathStarted()) {
+        localTool()->cancelPath();
     }
 
-    localTool()->cancelPath();
+    m_lineCurveState = LineCurveState::Idle;
+    m_lineCurveStart = QPointF();
+    m_lineCurveEnd = QPointF();
+    m_lineCurveControl = QPointF();
+    canvas()->updateCanvas(QRectF());
 }
 
 KisPopupWidgetInterface* KisToolPath::popupWidget()
