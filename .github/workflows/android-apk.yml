@@ -73,6 +73,15 @@ jobs:
           . venv/bin/activate
           export CI_COMMIT_SHORT_SHA="${GITHUB_SHA::8}"
           set +e
+          (
+            cd "$KDECI_WORKDIR_PATH/krita/_build"
+            export ANDROID_ABI="$KDECI_ANDROID_ABI"
+            export KRITA_INSTALL_PREFIX="${KDECI_SHARED_INSTALL_PATH:-$KDECI_WORKDIR_PATH/krita/_install}"
+            export KRITA_UNSTABLE_PACKAGE_SUFFIX="-${GITHUB_SHA::8}"
+            cmake --build . --target create-apk --verbose
+          ) 2>&1 | tee create-apk-direct.log
+          CREATE_APK_STATUS=${PIPESTATUS[0]}
+          echo "CREATE_APK_STATUS=$CREATE_APK_STATUS" | tee create-apk-status.txt
           python3 -u build-tools/ci-scripts/build-android-package.py --package-type debug 2>&1 | tee build-apk.log
           PACKAGE_SCRIPT_STATUS=${PIPESTATUS[0]}
           set -e
@@ -135,6 +144,8 @@ jobs:
             gradle-project-files.txt
             android-build-directories.txt
             package-script-status.txt
+            create-apk-direct.log
+            create-apk-status.txt
           if-no-files-found: warn
 
       - name: Collect APK
