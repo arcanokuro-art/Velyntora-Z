@@ -24,7 +24,6 @@ install( FILES
 DESTINATION ${KDE_INSTALL_DATADIR}/krita/templates/design/.source)
 
 install( FILES  
-    .directory 
     Designcinema16_10_2484x1200_96dpiRGB_8bit_.desktop
     Designcinema2.39_1_2484x1040_96dpiRGB_8bit_.desktop
     DesignpresentationA3Landscape_4960x3508_300dpiRGB_8bit_.desktop
