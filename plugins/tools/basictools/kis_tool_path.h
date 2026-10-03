@@ -82,12 +82,14 @@ private:
     enum class LineCurveState {
         Idle,
         DrawingStraight,
-        AwaitingCurve
+        AwaitingCurve,
+        Curving
     };
 
     LineCurveState m_lineCurveState {LineCurveState::Idle};
     QPointF m_lineCurveStart;
     QPointF m_lineCurveEnd;
+    QPointF m_lineCurveControl;
 
     friend class __KisToolPathLocalTool;
 };
