@@ -264,7 +264,10 @@ void KisToolPath::beginPrimaryDoubleClickAction(KoPointerEvent *event)
         return;
     }
 
-    localTool()->endPath();
+    // Keep double-click finalization identical to normal/forced completion:
+    // KoCreatePathTool owns a provisional trailing point while the segment is
+    // live, and Line/Curve must not commit that legacy Bezier point.
+    localTool()->endPathWithoutLastPoint();
 }
 
 QList<QPointer<QWidget> > KisToolPath::createOptionWidgets()
