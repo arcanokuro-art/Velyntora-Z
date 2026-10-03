@@ -74,7 +74,13 @@ jobs:
           export CI_COMMIT_SHORT_SHA="${GITHUB_SHA::8}"
           python3 -u build-tools/ci-scripts/build-android-package.py --package-type debug 2>&1 | tee build-apk.log
           GRADLE_PROJECT="$KDECI_WORKDIR_PATH/krita/_build/krita_build_apk"
-          test -d "$GRADLE_PROJECT"
+          echo "GRADLE_PROJECT=$GRADLE_PROJECT"
+          if [ ! -d "$GRADLE_PROJECT" ]; then
+            echo "::error::Generated Android Gradle project is missing: $GRADLE_PROJECT"
+            find "$KDECI_WORKDIR_PATH/krita/_build" -maxdepth 4 -type d -print | tee "$GITHUB_WORKSPACE/android-build-directories.txt" || true
+            exit 1
+          fi
+          find "$GRADLE_PROJECT" -maxdepth 3 -type f -print | tee "$GITHUB_WORKSPACE/gradle-project-files.txt" || true
           if ! find "$GRADLE_PROJECT" -type f -name "*.apk" -print -quit | grep -q .; then
             echo "create-apk produced no APK; invoking generated Gradle project explicitly"
             test -x "$GRADLE_PROJECT/gradlew"
@@ -122,6 +128,8 @@ jobs:
             create-apk-files.txt
             gradle-output-files.txt
             gradle-assemble-debug.log
+            gradle-project-files.txt
+            android-build-directories.txt
           if-no-files-found: warn
 
       - name: Collect APK
