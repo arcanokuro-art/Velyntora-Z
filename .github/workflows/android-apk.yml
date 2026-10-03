@@ -73,6 +73,16 @@ jobs:
           . venv/bin/activate
           export CI_COMMIT_SHORT_SHA="${GITHUB_SHA::8}"
           python3 -u build-tools/ci-scripts/build-android-package.py --package-type debug 2>&1 | tee build-apk.log
+          GRADLE_PROJECT="$KDECI_WORKDIR_PATH/krita/_build/krita_build_apk"
+          test -d "$GRADLE_PROJECT"
+          if ! find "$GRADLE_PROJECT" -type f -name "*.apk" -print -quit | grep -q .; then
+            echo "create-apk produced no APK; invoking generated Gradle project explicitly"
+            test -x "$GRADLE_PROJECT/gradlew"
+            (
+              cd "$GRADLE_PROJECT"
+              ./gradlew --no-daemon assembleDebug 2>&1 | tee "$GITHUB_WORKSPACE/gradle-assemble-debug.log"
+            )
+          fi
           echo "=== create-apk output tree ==="
           find "$KDECI_WORKDIR_PATH/krita/_build/krita_build_apk" -maxdepth 8 -type f -print 2>/dev/null | tee create-apk-files.txt || true
           echo "=== Gradle APK output tree ==="
@@ -111,6 +121,7 @@ jobs:
             build-apk.log
             create-apk-files.txt
             gradle-output-files.txt
+            gradle-assemble-debug.log
           if-no-files-found: warn
 
       - name: Collect APK
