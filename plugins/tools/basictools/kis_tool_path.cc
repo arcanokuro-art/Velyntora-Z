@@ -129,9 +129,12 @@ void KisToolPath::beginAlternateAction(KoPointerEvent *event, AlternateAction ac
     if (!nodeEditable()) return;
 
     if (nodePaintAbility() == KisToolPath::MYPAINTBRUSH_UNPAINTABLE) {
-        KisCanvas2 * kiscanvas = static_cast<KisCanvas2*>(canvas());
         QString message = i18n("The MyPaint Brush Engine is not available for this colorspace");
-        kiscanvas->viewManager()->showFloatingMessage(message, koIcon("object-locked"));
+        if (KisCanvas2 *kritaCanvas = dynamic_cast<KisCanvas2*>(canvas())) {
+            if (kritaCanvas->viewManager()) {
+                kritaCanvas->viewManager()->showFloatingMessage(message, koIcon("object-locked"));
+            }
+        }
         event->ignore();
         return;
     }
