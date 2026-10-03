@@ -72,7 +72,11 @@ void KisToolPath::resetCursorStyle()
 
 void KisToolPath::clearLineCurvePreview()
 {
-    clearLineCurvePreview();
+    m_lineCurveState = LineCurveState::Idle;
+    m_lineCurveStart = QPointF();
+    m_lineCurveEnd = QPointF();
+    m_lineCurveControl = QPointF();
+    canvas()->updateCanvas(QRectF());
 }
 
 void KisToolPath::requestStrokeEnd()
