@@ -339,8 +339,13 @@ void KisStatusBar::setup()
             QToolTip::showText(addQuickColor->mapToGlobal(addQuickColor->rect().center()),
                                i18n("Quick colors are full. Remove a custom color before adding another."),
                                addQuickColor);
+            return;
         }
 
+        // Selecting a color in the Add dialog also makes it the active
+        // foreground color when it was saved (or was already present). If the
+        // palette is full, the early return above keeps the current drawing
+        // color unchanged instead of applying a color that was not added.
         m_viewManager->canvasResourceProvider()->setFGColor(
             KoColor(selected, KoColorSpaceRegistry::instance()->rgb8()));
     });
