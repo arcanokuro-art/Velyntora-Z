@@ -3,6 +3,7 @@
 
 #include <QPainterPath>
 #include <QScopedPointer>
+#include <QFutureWatcher>
 #include "kis_tool_paint.h"
 #include "KisToolPaintFactoryBase.h"
 #include <kis_icon.h>
@@ -24,6 +25,7 @@ private:
     struct Private;
     const QScopedPointer<Private> m_d;
     void addMaskPoint(KoPointerEvent *event);
+    void finishInference();
 };
 
 class KisToolRemoveAIFactory : public KisToolPaintFactoryBase
