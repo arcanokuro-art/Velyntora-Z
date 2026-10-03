@@ -243,7 +243,7 @@ void KisToolPath::continuePrimaryAction(KoPointerEvent *event)
     if (m_lineCurveState == LineCurveState::Curving) {
         if (!nodeEditable()) {
             localTool()->cancelPath();
-            m_lineCurveState = LineCurveState::Idle;
+            clearLineCurvePreview();
             return;
         }
         m_lineCurveControl = convertToPixelCoordAndSnap(event);
@@ -259,6 +259,7 @@ void KisToolPath::continuePrimaryAction(KoPointerEvent *event)
     // leaving a hidden delegated path alive until release.
     if (!nodeEditable()) {
         localTool()->cancelPath();
+        clearLineCurvePreview();
         return;
     }
 
@@ -284,13 +285,12 @@ void KisToolPath::endPrimaryAction(KoPointerEvent *event)
     if (m_lineCurveState == LineCurveState::Curving) {
         if (!nodeEditable()) {
             localTool()->cancelPath();
-            m_lineCurveState = LineCurveState::Idle;
+            clearLineCurvePreview();
             return;
         }
         m_lineCurveControl = convertToPixelCoordAndSnap(event);
         localTool()->endPathWithoutLastPoint();
-        m_lineCurveState = LineCurveState::Idle;
-        canvas()->updateCanvas(QRectF());
+        clearLineCurvePreview();
         return;
     }
 
@@ -298,6 +298,7 @@ void KisToolPath::endPrimaryAction(KoPointerEvent *event)
     // switch, etc.), cancel rather than committing into an invalid target.
     if (!nodeEditable()) {
         localTool()->cancelPath();
+        clearLineCurvePreview();
         return;
     }
 
@@ -312,6 +313,7 @@ void KisToolPath::endPrimaryAction(KoPointerEvent *event)
 
     if (!nodeEditable()) {
         localTool()->cancelPath();
+        clearLineCurvePreview();
         return;
     }
 
@@ -321,7 +323,7 @@ void KisToolPath::endPrimaryAction(KoPointerEvent *event)
     if (m_lineCurveState == LineCurveState::DrawingStraight) {
         if (m_lineCurveStart == m_lineCurveEnd) {
             localTool()->cancelPath();
-            m_lineCurveState = LineCurveState::Idle;
+            clearLineCurvePreview();
             return;
         }
         m_lineCurveState = LineCurveState::AwaitingCurve;
@@ -332,7 +334,7 @@ void KisToolPath::endPrimaryAction(KoPointerEvent *event)
     // A later explicit finalization discards KoCreatePathTool's provisional
     // trailing point and commits exactly the two Line/Curve anchors.
     localTool()->endPathWithoutLastPoint();
-    m_lineCurveState = LineCurveState::Idle;
+    clearLineCurvePreview();
 }
 
 void KisToolPath::deactivate()
@@ -340,9 +342,7 @@ void KisToolPath::deactivate()
     if (localTool()->pathStarted()) {
         localTool()->cancelPath();
     }
-    m_lineCurveState = LineCurveState::Idle;
-    m_lineCurveStart = QPointF();
-    m_lineCurveEnd = QPointF();
+    clearLineCurvePreview();
 
     DelegatedPathTool::deactivate();
 }
@@ -359,6 +359,7 @@ void KisToolPath::beginPrimaryDoubleClickAction(KoPointerEvent *event)
 
     if (!nodeEditable()) {
         localTool()->cancelPath();
+        clearLineCurvePreview();
         return;
     }
 
@@ -366,6 +367,7 @@ void KisToolPath::beginPrimaryDoubleClickAction(KoPointerEvent *event)
     // KoCreatePathTool owns a provisional trailing point while the segment is
     // live, and Line/Curve must not commit that legacy Bezier point.
     localTool()->endPathWithoutLastPoint();
+    clearLineCurvePreview();
 }
 
 QList<QPointer<QWidget> > KisToolPath::createOptionWidgets()
