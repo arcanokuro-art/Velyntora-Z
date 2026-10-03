@@ -14,6 +14,7 @@
 #include "kis_tool_shape.h"
 #include "kis_delegated_tool.h"
 #include <kis_icon.h>
+#include <QPointF>
 
 class KoCanvasBase;
 class KisToolPath;
@@ -58,6 +59,7 @@ public:
     void continuePrimaryAction(KoPointerEvent *event) override;
     void endPrimaryAction(KoPointerEvent *event) override;
     void deactivate() override;
+    void paint(QPainter &painter, const KoViewConverter &converter) override;
 
     void beginAlternateAction(KoPointerEvent *event, AlternateAction action) override;
     void continueAlternateAction(KoPointerEvent *event, AlternateAction action) override;
@@ -77,6 +79,16 @@ protected Q_SLOTS:
     void resetCursorStyle() override;
 
 private:
+    enum class LineCurveState {
+        Idle,
+        DrawingStraight,
+        AwaitingCurve
+    };
+
+    LineCurveState m_lineCurveState {LineCurveState::Idle};
+    QPointF m_lineCurveStart;
+    QPointF m_lineCurveEnd;
+
     friend class __KisToolPathLocalTool;
 };
 
