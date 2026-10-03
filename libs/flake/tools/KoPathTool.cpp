@@ -748,8 +748,12 @@ void KoPathTool::mouseReleaseEvent(KoPointerEvent *event)
         const bool hadNoSelection = !m_pointSelection.hasSelection();
         m_currentStrategy->finishInteraction(event->modifiers());
         KUndo2Command *command = m_currentStrategy->createCommand();
-        if (command)
+        if (command) {
+            // Control-point strategies already return undoable commands.
+            // Reuse Krita's normal history so Line/Curve edits participate in
+            // Undo/Redo without a parallel Velyntora-specific command path.
             d->canvas->addCommand(command);
+        }
         if (hadNoSelection && dynamic_cast<KoPathPointRubberSelectStrategy*>(m_currentStrategy.data())
                 && !m_pointSelection.hasSelection()) {
             // the click didn't do anything at all. Allow it to be used by others.
@@ -948,6 +952,8 @@ void KoPathTool::initializeWithShapes(const QList<KoShape*> shapes)
     if (selectedShapes != m_pointSelection.selectedShapes()) {
         clearActivePointSelectionReferences();
         m_pointSelection.setSelectedShapes(selectedShapes);
+
+
         repaintDecorations();
     }
 

@@ -13,6 +13,11 @@
 #include <KisViewManager.h>
 #include <canvas/kis_canvas2.h>
 #include <kis_canvas_resource_provider.h>
+#include <QMouseEvent>
+#include <QTabletEvent>
+#include <QEvent>
+#include <KoShapeManager.h>
+#include <KoSelection.h>
 
 
 KisToolPath::KisToolPath(KoCanvasBase * canvas)
@@ -333,18 +338,34 @@ void __KisToolPathLocalTool::addPathShape(KoPathShape* pathShape)
         return;
     }
 
-    // Keep the first result visually straight while storing it as a cubic
-    // that can later be shaped without exposing traditional Bezier handles.
+    // Keep the first result visually straight while storing it as a cubic.
+    // Line/Curve exposes only the two *inner* cubic controls: start CP2 and
+    // end CP1. The outer controls stay disabled, so the generic path editor
+    // cannot present the confusing four-handle Bezier workflow.
     start->removeControlPoint1();
     end->removeControlPoint2();
     start->unsetProperty(KoPathPoint::IsSmooth);
     start->unsetProperty(KoPathPoint::IsSymmetric);
     end->unsetProperty(KoPathPoint::IsSmooth);
     end->unsetProperty(KoPathPoint::IsSymmetric);
-    start->setControlPoint2(start->point() + delta / 3.0);
-    end->setControlPoint1(end->point() - delta / 3.0);
+
+    const QPointF firstCurveHandle = start->point() + delta / 3.0;
+    const QPointF secondCurveHandle = end->point() - delta / 3.0;
+    start->setControlPoint2(firstCurveHandle);
+    end->setControlPoint1(secondCurveHandle);
     pathShape->normalize();
 
     // Never merge into KoCreatePathTool's legacy multi-point path workflow.
     m_parentTool->addPathShape(pathShape, kundo2_i18n("Draw Line/Curve"));
+
+    // Hand the freshly-created curve to Krita's shape selection machinery.
+    // This makes the two inner controls immediately available to the normal
+    // post-draw editing path instead of forcing the user back through the
+    // legacy multi-click Bezier creation workflow.
+    if (KoShapeManager *manager = m_parentTool->canvas()->shapeManager()) {
+        if (KoSelection *selection = manager->selection()) {
+            selection->deselectAll();
+            selection->select(pathShape);
+        }
+    }
 }
