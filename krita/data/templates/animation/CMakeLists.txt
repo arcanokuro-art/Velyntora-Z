@@ -11,7 +11,6 @@ install( FILES
 DESTINATION ${KDE_INSTALL_DATADIR}/krita/templates/animation/.source)
 
 install( FILES  
-    .directory
     Anim-Jp-EN.desktop 
     Anim-Jp-JP.desktop
 DESTINATION ${KDE_INSTALL_DATADIR}/krita/templates/animation)
