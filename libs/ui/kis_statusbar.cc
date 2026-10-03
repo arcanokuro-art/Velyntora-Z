@@ -192,9 +192,26 @@ void KisStatusBar::setup()
         if (removable) {
             auto removeCustomColor = [swatch, color]() {
                 QSettings settings;
-                QStringList colors =
+                const QStringList storedColors =
                     settings.value(QStringLiteral("Velyntora/CustomQuickColors")).toStringList();
-                colors.removeAll(color.name(QColor::HexArgb));
+                QStringList colors;
+                const QString targetName = color.name(QColor::HexArgb);
+
+                // Compare normalized QColor values instead of raw strings.
+                // Older settings may contain the same color in #RRGGBB or a
+                // differently-cased representation, which removeAll() would
+                // leave behind and restore on the next launch.
+                for (const QString &storedName : storedColors) {
+                    const QColor storedColor(storedName);
+                    if (!storedColor.isValid()) {
+                        continue;
+                    }
+                    const QString normalizedName = storedColor.name(QColor::HexArgb);
+                    if (normalizedName != targetName && !colors.contains(normalizedName)) {
+                        colors.append(normalizedName);
+                    }
+                }
+
                 settings.setValue(QStringLiteral("Velyntora/CustomQuickColors"), colors);
                 swatch->deleteLater();
             };
