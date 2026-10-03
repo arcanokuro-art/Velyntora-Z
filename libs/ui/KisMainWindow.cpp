@@ -20,6 +20,7 @@
 #include <QScreen>
 #include <QDialog>
 #include <QDockWidget>
+#include <QSizePolicy>
 #include <QIcon>
 #include <QInputDialog>
 #include <QLayout>
@@ -47,6 +48,8 @@
 #include <QTemporaryDir>
 #include <QScrollArea>
 #include <QActionGroup>
+#include <QLabel>
+#include <QToolBar>
 
 #include <kactioncollection.h>
 #include <kactionmenu.h>
@@ -475,6 +478,44 @@ KisMainWindow::KisMainWindow(QUuid uuid)
         toolFactory->createActions(actionCollection());
     }
 
+    // Velyntora Z third drawing row: show the real active Krita tool above
+    // the document/canvas area instead of consuming space in the bottom status bar.
+    QToolBar *velyntoraToolInfoBar = new QToolBar(i18n("Velyntora Tool Info"), this);
+    velyntoraToolInfoBar->setObjectName(QStringLiteral("VelyntoraToolInfoBar"));
+    velyntoraToolInfoBar->setMovable(false);
+    velyntoraToolInfoBar->setFloatable(false);
+    velyntoraToolInfoBar->setAllowedAreas(Qt::TopToolBarArea);
+    velyntoraToolInfoBar->setIconSize(QSize(16, 16));
+    QLabel *velyntoraActiveToolLabel = new QLabel(velyntoraToolInfoBar);
+    velyntoraActiveToolLabel->setObjectName(QStringLiteral("VelyntoraActiveTool"));
+    velyntoraActiveToolLabel->setContentsMargins(8, 0, 12, 0);
+    velyntoraActiveToolLabel->setMinimumWidth(150);
+    velyntoraToolInfoBar->addWidget(velyntoraActiveToolLabel);
+    addToolBarBreak(Qt::TopToolBarArea);
+    addToolBar(Qt::TopToolBarArea, velyntoraToolInfoBar);
+
+    auto updateVelyntoraActiveTool = [velyntoraActiveToolLabel]() {
+        const QString activeId = KoToolManager::instance()->activeToolId();
+        QString toolName;
+        const QList<KoToolAction*> actions = KoToolManager::instance()->toolActionList();
+        for (KoToolAction *toolAction : actions) {
+            if (toolAction && toolAction->id() == activeId) {
+                toolName = toolAction->iconText();
+                if (toolName.isEmpty()) toolName = toolAction->toolTip();
+                break;
+            }
+        }
+        if (toolName.isEmpty()) toolName = activeId;
+        velyntoraActiveToolLabel->setText(
+            toolName.isEmpty() ? QString() : i18n("Herramienta: %1", toolName));
+        velyntoraActiveToolLabel->setToolTip(toolName);
+    };
+    connect(KoToolManager::instance(), &KoToolManager::changedTool,
+            this, [updateVelyntoraActiveTool](KoCanvasController *) { updateVelyntoraActiveTool(); });
+    connect(KoToolManager::instance(), &KoToolManager::changedCanvas,
+            this, [updateVelyntoraActiveTool](const KoCanvasBase *) { updateVelyntoraActiveTool(); });
+    updateVelyntoraActiveTool();
+
 
     Q_FOREACH (QDockWidget *wdg, dockWidgets()) {
         if ((wdg->features() & QDockWidget::DockWidgetClosable) == 0) {
@@ -490,9 +531,64 @@ KisMainWindow::KisMainWindow(QUuid uuid)
         }
     }
 
+    // Velyntora Z drawing workspace: keep Krita's engine and actions, but
+    // start from a simpler Pinta-like arrangement.  The toolbox remains on
+    // the left while Layers and Undo History form the primary stack on the
+    // right.  Other dockers are still available from Settings > Dockers.
+    if (toolbox) {
+        addDockWidget(Qt::LeftDockWidgetArea, toolbox);
+        toolbox->setVisible(true);
+
+        // Three compact tool columns are the Velyntora Z default.  Keep the
+        // strip narrow enough for Android landscape while allowing the
+        // toolbox's existing scroll area to expose every Krita tool.
+        toolbox->setMinimumWidth(104);
+        toolbox->setMaximumWidth(144);
+        toolbox->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
+    }
+
+    QDockWidget *layersDocker = d->dockWidgetsMap.value(QStringLiteral("KisLayerBox"));
+    QDockWidget *historyDocker = d->dockWidgetsMap.value(QStringLiteral("History"));
+
+    if (layersDocker) {
+        addDockWidget(Qt::RightDockWidgetArea, layersDocker);
+        layersDocker->setVisible(true);
+        layersDocker->setMinimumWidth(208);
+        layersDocker->setMaximumWidth(320);
+        layersDocker->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
+    }
+
+    if (historyDocker) {
+        addDockWidget(Qt::RightDockWidgetArea, historyDocker);
+        historyDocker->setVisible(true);
+        historyDocker->setMinimumWidth(208);
+        historyDocker->setMaximumWidth(320);
+        historyDocker->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
+
+        if (layersDocker) {
+            splitDockWidget(layersDocker, historyDocker, Qt::Vertical);
+            // Layers are the primary panel while History stays compact,
+            // matching the Velyntora Z drawing reference.
+            resizeDocks({layersDocker, historyDocker}, {3, 2}, Qt::Vertical);
+        }
+    }
+
+    // Velyntora Z uses the compact status-bar palette for drawing colors.
+    // Keep Krita's full Palette docker available from Settings > Dockers,
+    // but do not force it open in the default drawing workspace.
+
+    // Keep the central canvas as the visual priority. On narrower displays
+    // the two side areas remain bounded instead of expanding into the drawing
+    // surface; users can still resize dockers manually inside these limits.
+    if (toolbox && layersDocker && historyDocker) {
+        resizeDocks({toolbox, layersDocker}, {104, 248}, Qt::Horizontal);
+    }
+
     d->mdiArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     d->mdiArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     d->mdiArea->setTabPosition(QTabWidget::North);
+    // Keep the native functional document-tab close button enabled.
+    // Modified documents continue through the normal Krita close flow.
     d->mdiArea->setTabsClosable(true);
     d->mdiArea->setAcceptDrops(true);
 
@@ -1719,6 +1815,14 @@ void KisMainWindow::setMainWindowLayoutForCurrentMainWidget(int widgetIndex, boo
     else {
         setAutoSaveSettings(d->windowStateConfig, false);
         statusBar()->setVisible(KisConfig(true).showStatusBar());
+
+        // The welcome page hides every toolbar except mainToolBar. Restore
+        // Velyntora's dedicated third drawing row explicitly when a document
+        // becomes active; otherwise Herramienta: can remain hidden after the
+        // first transition from Welcome to the canvas.
+        if (QToolBar *toolInfoBar = findChild<QToolBar *>(QStringLiteral("VelyntoraToolInfoBar"))) {
+            toolInfoBar->show();
+        }
     }
 
     QList<QAction *> actions = d->dockWidgetMenu->menu()->actions();

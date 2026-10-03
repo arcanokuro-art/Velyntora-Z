@@ -14,6 +14,7 @@
 #include "kis_tool_shape.h"
 #include "kis_delegated_tool.h"
 #include <kis_icon.h>
+#include <QPointF>
 
 class KoCanvasBase;
 class KisToolPath;
@@ -27,8 +28,10 @@ public:
     void addPathShape(KoPathShape* pathShape) override;
 
     using KoCreatePathTool::createOptionWidgets;
+    // Line/Curve must always discard KoCreatePathTool's provisional trailing
+    // point. Do not expose endPath(): it is the legacy multi-point Bezier
+    // completion path and can accidentally reintroduce a third anchor.
     using KoCreatePathTool::endPathWithoutLastPoint;
-    using KoCreatePathTool::endPath;
     using KoCreatePathTool::cancelPath;
     using KoCreatePathTool::removeLastPoint;
 
@@ -55,8 +58,12 @@ public:
     void beginPrimaryAction(KoPointerEvent* event) override;
     void continuePrimaryAction(KoPointerEvent *event) override;
     void endPrimaryAction(KoPointerEvent *event) override;
+    void deactivate() override;
+    void paint(QPainter &painter, const KoViewConverter &converter) override;
 
     void beginAlternateAction(KoPointerEvent *event, AlternateAction action) override;
+    void continueAlternateAction(KoPointerEvent *event, AlternateAction action) override;
+    void endAlternateAction(KoPointerEvent *event, AlternateAction action) override;
 
     // reimplementing KisTool's method because that method calls beginPrimaryAction
     // which now is used to start the path tool.
@@ -72,6 +79,20 @@ protected Q_SLOTS:
     void resetCursorStyle() override;
 
 private:
+    void clearLineCurvePreview();
+
+    enum class LineCurveState {
+        Idle,
+        DrawingStraight,
+        AwaitingCurve,
+        Curving
+    };
+
+    LineCurveState m_lineCurveState {LineCurveState::Idle};
+    QPointF m_lineCurveStart;
+    QPointF m_lineCurveEnd;
+    QPointF m_lineCurveControl;
+
     friend class __KisToolPathLocalTool;
 };
 
@@ -81,7 +102,7 @@ class KisToolPathFactory : public KisToolPaintFactoryBase
 public:
     KisToolPathFactory()
             : KisToolPaintFactoryBase("KisToolPath") {
-        setToolTip(i18n("Bezier Curve Tool: Shift-mouseclick ends the curve."));
+        setToolTip(i18n("Line/Curve Tool: draw a straight segment, then shape it as a curve."));
         setSection(ToolBoxSection::Shape);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
         setIconName(koIconNameCStr("krita_draw_path"));

@@ -77,6 +77,9 @@ public:
     void addExtraWidget(QWidget *widget);
     void removeExtraWidget(QWidget *widget);
 
+protected:
+    bool eventFilter(QObject *watched, QEvent *event) override;
+
 public Q_SLOTS:
 
     void imageSizeChanged();
@@ -114,6 +117,11 @@ private:
     QWidget *m_extraWidgetsParent {nullptr};
     QBoxLayout *m_extraWidgetsLayout {nullptr};
     KisAngleSelector *m_canvasAngleSelector {nullptr};
+    QToolButton *m_velyntoraForegroundColor {nullptr};
+    QToolButton *m_velyntoraBackgroundColor {nullptr};
+    QLabel *m_velyntoraImageSizeLabel {nullptr};
+    QLabel *m_velyntoraCursorPositionLabel {nullptr};
+    QPointer<QWidget> m_velyntoraCanvasWidget;
 
     KSqueezedTextLabel *m_statusBarStatusLabel {nullptr};
     KSqueezedTextLabel *m_statusBarProfileLabel {nullptr};

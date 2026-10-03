@@ -1239,7 +1239,17 @@ void KisView::slotThemeChanged(QPalette pal)
 
 void KisView::slotUpdateDocumentTitle()
 {
-    QString title = d->document->caption();
+    // Velyntora Z document row is functional: unsaved documents get an
+    // explicit label, while saved/opened documents use their real file name.
+    QString title;
+    if (d->document->path().isEmpty()) {
+        title = i18n("[No guardado]");
+    } else {
+        title = QFileInfo(d->document->path()).fileName();
+        if (title.isEmpty()) {
+            title = d->document->caption();
+        }
+    }
 
     if (!d->document->isReadWrite()) {
         title += " " + i18n("Write Protected");
@@ -1253,10 +1263,13 @@ void KisView::slotUpdateDocumentTitle()
     KisMemoryStatisticsServer::Statistics fileSizeStats = KisMemoryStatisticsServer::instance()->fetchMemoryStatistics(d->document->image());
 
     if (fileSizeStats.imageSize) {
-        title += QString(" (").append( KFormat().formatByteSize(qreal(fileSizeStats.imageSize))).append( ") ");
+        title += QString(" (").append(KFormat().formatByteSize(qreal(fileSizeStats.imageSize))).append(")");
     }
 
-    title += "[*]";
+    // Qt expands [*] into the modified marker when windowModified is true.
+    // Keep it separated from the live memory value so the tab reads
+    // "[No guardado] (33.5 MiB) *" rather than ")*".
+    title += " [*]";
 
     this->setWindowTitle(title);
 }
