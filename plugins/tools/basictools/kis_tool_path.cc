@@ -274,6 +274,14 @@ QList<QPointer<QWidget> > KisToolPath::createOptionWidgets()
         widget->setProperty("velyntoraLineCurve", true);
         widget->setAccessibleDescription(
             i18n("Options for the simplified Line/Curve tool. Curvature is handled without exposed Bezier handles."));
+
+        // Autosmooth belongs to KoCreatePathTool's legacy multi-point Bezier
+        // workflow. Line/Curve creates one two-anchor segment, so exposing
+        // this checkbox is misleading and has no useful effect here. Keep
+        // angle snapping and the remaining shape options available.
+        if (QWidget *autoSmooth = widget->findChild<QWidget*>(QStringLiteral("smooth-curves-widget"))) {
+            autoSmooth->hide();
+        }
     }
 
     return widgets;
