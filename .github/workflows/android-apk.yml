@@ -15,6 +15,7 @@ jobs:
       KRITACI_ANDROID_PACKAGE_TYPE: debug
       KDECI_BUILD_TYPE: Release
       KDECI_WORKDIR_PATH: /tmp/wd
+      KDECI_CACHE_PATH: /tmp/kdeci-cache
     steps:
       - uses: actions/checkout@v4
         with:
@@ -58,7 +59,10 @@ jobs:
           python3 -u krita-deps-management/tools/generate-deps-file.py -s branch-corrected-deps.yml -o .kde-ci.yml
 
       - name: Build Velyntora for Android arm64
+        shell: bash
         run: |
+          set -euo pipefail
+          mkdir -p "$KDECI_CACHE_PATH" "$KDECI_WORKDIR_PATH"
           . venv/bin/activate
           export CMAKE_TOOLCHAIN_FILE="$GITHUB_WORKSPACE/krita-deps-management/tools/android-toolchain-krita.cmake"
           export KDECI_REPO_METADATA_PATH="$GITHUB_WORKSPACE/krita-deps-management/repo-metadata"
