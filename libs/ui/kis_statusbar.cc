@@ -11,13 +11,25 @@
 #include <QAction>
 #include <QToolTip>
 #include <QStatusBar>
+#include <QColor>
+#include <QFrame>
+#include <QColorDialog>
+#include <QSettings>
+#include <QMenu>
+#include <QTimer>
+#include <QGridLayout>
+#include <QLabel>
+
+#include <utility>
 
 #include <ksqueezedtextlabel.h>
 #include <klocalizedstring.h>
 #include <kformat.h>
 
+#include <KoColor.h>
 #include <KoColorProfile.h>
 #include <KoColorSpace.h>
+#include <KoColorSpaceRegistry.h>
 #include <KoToolManager.h>
 #include <KoViewConverter.h>
 #include <QHBoxLayout>
@@ -72,6 +84,235 @@ void KisStatusBar::setup()
 
     m_statusBar = m_viewManager->mainWindow()->statusBar();
 
+    // Velyntora Z: compact Pinta-like quick color strip.  These buttons use
+    // Krita's own canvas resource provider, so choosing a swatch changes the
+    // actual foreground painting color instead of maintaining a second color
+    // system just for the UI.
+    QWidget *quickColors = new QWidget(m_statusBar);
+    m_velyntoraForegroundColor = new QToolButton(quickColors);
+    m_velyntoraBackgroundColor = new QToolButton(quickColors);
+    m_velyntoraForegroundColor->setObjectName("VelyntoraForegroundColor");
+    m_velyntoraBackgroundColor->setObjectName("VelyntoraBackgroundColor");
+    m_velyntoraForegroundColor->setFixedSize(26, 26);
+    m_velyntoraBackgroundColor->setFixedSize(26, 26);
+    m_velyntoraForegroundColor->setToolTip(i18n("Foreground color"));
+    m_velyntoraBackgroundColor->setToolTip(i18n("Background color"));
+    quickColors->setObjectName("VelyntoraQuickColors");
+    QHBoxLayout *quickColorsLayout = new QHBoxLayout(quickColors);
+    quickColorsLayout->setContentsMargins(4, 1, 6, 1);
+    quickColorsLayout->setSpacing(2);
+
+    auto updateColorButton = [](QToolButton *button, const KoColor &color) {
+        const QColor displayColor = color.toQColor();
+        button->setStyleSheet(QStringLiteral(
+            "QToolButton { background:%1; border:2px solid palette(mid); padding:0px; }")
+            .arg(displayColor.name(QColor::HexArgb)));
+    };
+
+    updateColorButton(m_velyntoraForegroundColor, m_viewManager->canvasResourceProvider()->fgColor());
+    updateColorButton(m_velyntoraBackgroundColor, m_viewManager->canvasResourceProvider()->bgColor());
+    // Pinta-like overlapping foreground/background chips.  Keep them as
+    // separate real Krita resources while presenting them as one compact
+    // control that is easy to recognize on touch screens.
+    QWidget *dualColor = new QWidget(quickColors);
+    dualColor->setFixedSize(42, 34);
+    QGridLayout *dualColorLayout = new QGridLayout(dualColor);
+    dualColorLayout->setContentsMargins(0, 0, 0, 0);
+    dualColorLayout->setSpacing(0);
+    m_velyntoraBackgroundColor->setFixedSize(26, 26);
+    m_velyntoraForegroundColor->setFixedSize(26, 26);
+    dualColorLayout->addWidget(m_velyntoraBackgroundColor, 0, 0, Qt::AlignRight | Qt::AlignBottom);
+    dualColorLayout->addWidget(m_velyntoraForegroundColor, 0, 0, Qt::AlignLeft | Qt::AlignTop);
+    m_velyntoraBackgroundColor->lower();
+    m_velyntoraForegroundColor->raise();
+    quickColorsLayout->addWidget(dualColor);
+    quickColorsLayout->addSpacing(4);
+
+    // Clicking either large swatch opens an unrestricted color picker.
+    // The chosen QColor is converted into Krita's RGB8 KoColor and written
+    // back through the normal canvas resource provider.
+    connect(m_velyntoraForegroundColor, &QToolButton::clicked, this, [this]() {
+        const QColor initial = m_viewManager->canvasResourceProvider()->fgColor().toQColor();
+        const QColor selected = QColorDialog::getColor(initial, m_viewManager->mainWindow(),
+                                                       i18n("Choose foreground color"),
+                                                       QColorDialog::ShowAlphaChannel);
+        if (selected.isValid()) {
+            m_viewManager->canvasResourceProvider()->setFGColor(
+                KoColor(selected, KoColorSpaceRegistry::instance()->rgb8()));
+        }
+    });
+    connect(m_velyntoraBackgroundColor, &QToolButton::clicked, this, [this]() {
+        const QColor initial = m_viewManager->canvasResourceProvider()->bgColor().toQColor();
+        const QColor selected = QColorDialog::getColor(initial, m_viewManager->mainWindow(),
+                                                       i18n("Choose background color"),
+                                                       QColorDialog::ShowAlphaChannel);
+        if (selected.isValid()) {
+            m_viewManager->canvasResourceProvider()->setBGColor(
+                KoColor(selected, KoColorSpaceRegistry::instance()->rgb8()));
+        }
+    });
+
+    connect(m_viewManager->canvasResourceProvider(), &KisCanvasResourceProvider::sigFGColorChanged,
+            this, [this, updateColorButton](const KoColor &color) {
+                updateColorButton(m_velyntoraForegroundColor, color);
+            });
+    connect(m_viewManager->canvasResourceProvider(), &KisCanvasResourceProvider::sigBGColorChanged,
+            this, [this, updateColorButton](const KoColor &color) {
+                updateColorButton(m_velyntoraBackgroundColor, color);
+            });
+
+    const QList<QColor> velyntoraColors {
+        QColor("#000000"), QColor("#404040"), QColor("#808080"), QColor("#c0c0c0"),
+        QColor("#ffffff"), QColor("#7f0000"), QColor("#ff0000"), QColor("#ff7f00"),
+        QColor("#ffff00"), QColor("#7fff00"), QColor("#00a000"), QColor("#00ffff"),
+        QColor("#007fff"), QColor("#0000ff"), QColor("#7f00ff"), QColor("#ff00ff"),
+        QColor("#ff7fbf")
+    };
+
+    auto makeColorButton = [this, quickColors](const QColor &color, bool removable) {
+        QToolButton *swatch = new QToolButton(quickColors);
+        swatch->setFixedSize(22, 22);
+        swatch->setToolTip(color.name(QColor::HexArgb));
+        swatch->setAccessibleName(i18n("Quick color %1", color.name(QColor::HexArgb)));
+        swatch->setStyleSheet(QStringLiteral(
+            "QToolButton { background:%1; border:1px solid palette(mid); padding:0px; }"
+            "QToolButton:pressed { border:2px solid palette(highlight); }")
+            .arg(color.name(QColor::HexArgb)));
+
+        connect(swatch, &QToolButton::clicked, this, [this, color]() {
+            m_viewManager->canvasResourceProvider()->setFGColor(
+                KoColor(color, KoColorSpaceRegistry::instance()->rgb8()));
+        });
+
+        if (removable) {
+            auto removeCustomColor = [swatch, color]() {
+                QSettings settings;
+                QStringList colors =
+                    settings.value(QStringLiteral("Velyntora/CustomQuickColors")).toStringList();
+                colors.removeAll(color.name(QColor::HexArgb));
+                settings.setValue(QStringLiteral("Velyntora/CustomQuickColors"), colors);
+                swatch->deleteLater();
+            };
+
+            swatch->setContextMenuPolicy(Qt::CustomContextMenu);
+            connect(swatch, &QWidget::customContextMenuRequested, this,
+                    [swatch, removeCustomColor](const QPoint &pos) {
+                QMenu menu;
+                QAction *remove = menu.addAction(i18n("Remove custom color"));
+                if (menu.exec(swatch->mapToGlobal(pos)) == remove) {
+                    removeCustomColor();
+                }
+            });
+
+            // Android/touch: holding a custom swatch for 650 ms opens the
+            // same delete action without requiring a desktop right click.
+            QTimer *holdTimer = new QTimer(swatch);
+            holdTimer->setSingleShot(true);
+            holdTimer->setInterval(650);
+            connect(swatch, &QToolButton::pressed, holdTimer,
+                    qOverload<>(&QTimer::start));
+            connect(swatch, &QToolButton::released, holdTimer, &QTimer::stop);
+            connect(holdTimer, &QTimer::timeout, this, [swatch, removeCustomColor]() {
+                // A long press must not also activate the swatch when the
+                // finger is released after closing the context menu.
+                swatch->setDown(false);
+                const bool signalsWereBlocked = swatch->blockSignals(true);
+                QMenu menu;
+                QAction *remove = menu.addAction(i18n("Remove custom color"));
+                const bool shouldRemove =
+                    menu.exec(swatch->mapToGlobal(swatch->rect().center())) == remove;
+                swatch->blockSignals(signalsWereBlocked);
+                if (shouldRemove) {
+                    removeCustomColor();
+                }
+            });
+        }
+        return swatch;
+    };
+
+    for (const QColor &color : velyntoraColors) {
+        quickColorsLayout->addWidget(makeColorButton(color, false));
+    }
+
+    // User colors are persistent. They are restored on every launch and can
+    // be removed with the platform context-menu gesture (right click on
+    // desktop, long-press where Qt exposes it on touch platforms).
+    QSettings settings;
+    QStringList savedCustomColors =
+        settings.value(QStringLiteral("Velyntora/CustomQuickColors")).toStringList();
+    constexpr int maxCustomQuickColors = 8;
+
+    // Normalize old settings as well: discard invalid entries and duplicates
+    // before applying the compact mobile limit.
+    QStringList normalizedCustomColors;
+    for (const QString &name : std::as_const(savedCustomColors)) {
+        const QColor color(name);
+        if (color.isValid()) {
+            const QString normalizedName = color.name(QColor::HexArgb);
+            if (!normalizedCustomColors.contains(normalizedName)) {
+                normalizedCustomColors.append(normalizedName);
+            }
+        }
+    }
+    if (normalizedCustomColors.size() > maxCustomQuickColors) {
+        normalizedCustomColors = normalizedCustomColors.mid(0, maxCustomQuickColors);
+    }
+    if (normalizedCustomColors != savedCustomColors) {
+        settings.setValue(QStringLiteral("Velyntora/CustomQuickColors"), normalizedCustomColors);
+    }
+    savedCustomColors = normalizedCustomColors;
+    for (const QString &name : std::as_const(savedCustomColors)) {
+        const QColor color(name);
+        if (color.isValid()) {
+            quickColorsLayout->addWidget(makeColorButton(color, true));
+        }
+    }
+
+    QToolButton *addQuickColor = new QToolButton(quickColors);
+    addQuickColor->setObjectName("VelyntoraAddQuickColor");
+    addQuickColor->setText(QStringLiteral("+"));
+    addQuickColor->setFixedSize(22, 22);
+    addQuickColor->setToolTip(i18n("Add a custom color"));
+    addQuickColor->setAccessibleName(i18n("Add a custom quick color"));
+    connect(addQuickColor, &QToolButton::clicked, this,
+            [this, quickColorsLayout, addQuickColor, makeColorButton]() {
+        const QColor initial = m_viewManager->canvasResourceProvider()->fgColor().toQColor();
+        const QColor selected = QColorDialog::getColor(initial, m_viewManager->mainWindow(),
+                                                       i18n("Add custom color"),
+                                                       QColorDialog::ShowAlphaChannel);
+        if (!selected.isValid()) {
+            return;
+        }
+
+        const QString name = selected.name(QColor::HexArgb);
+        QSettings settings;
+        QStringList colors = settings.value(QStringLiteral("Velyntora/CustomQuickColors")).toStringList();
+
+        // Keep the compact status bar bounded on phones/tablets.  A small
+        // persistent custom palette is enough here; Krita's full Palette
+        // docker remains available for larger collections.
+        if (!colors.contains(name) && colors.size() < maxCustomQuickColors) {
+            colors.append(name);
+            settings.setValue(QStringLiteral("Velyntora/CustomQuickColors"), colors);
+            const int addButtonIndex = quickColorsLayout->indexOf(addQuickColor);
+            if (addButtonIndex >= 0) {
+                quickColorsLayout->insertWidget(addButtonIndex, makeColorButton(selected, true));
+            } else {
+                quickColorsLayout->addWidget(makeColorButton(selected, true));
+            }
+        } else if (!colors.contains(name)) {
+            QToolTip::showText(addQuickColor->mapToGlobal(addQuickColor->rect().center()),
+                               i18n("Quick colors are full. Remove a custom color before adding another."),
+                               addQuickColor);
+        }
+
+        m_viewManager->canvasResourceProvider()->setFGColor(
+            KoColor(selected, KoColorSpaceRegistry::instance()->rgb8()));
+    });
+    quickColorsLayout->addWidget(addQuickColor);
+
+    addStatusBarItem(quickColors);
+
     connect(m_selectionStatus, SIGNAL(clicked()), m_viewManager->selectionManager(), SLOT(slotToggleSelectionDecoration()));
     connect(m_viewManager->selectionManager(), SIGNAL(displaySelectionChanged()), SLOT(updateSelectionToolTip()));
     connect(m_viewManager->mainWindow(), SIGNAL(themeChanged()), this, SLOT(updateSelectionIcon()));
@@ -121,6 +362,31 @@ void KisStatusBar::setup()
     addStatusBarItem(m_memoryReportBox);
     m_memoryReportBox->setVisible(false);
 
+    // Velyntora Z: show document dimensions directly in the compact bottom
+    // bar, matching the Pinta-like reference without exposing memory details.
+    m_velyntoraImageSizeLabel = new QLabel(m_statusBar);
+    m_velyntoraImageSizeLabel->setObjectName("VelyntoraImageSize");
+    m_velyntoraImageSizeLabel->setContentsMargins(6, 0, 6, 0);
+    m_velyntoraImageSizeLabel->setToolTip(i18n("Canvas size"));
+    m_velyntoraImageSizeLabel->setAccessibleName(i18n("Canvas size"));
+    m_velyntoraImageSizeLabel->setAlignment(Qt::AlignCenter);
+    m_velyntoraImageSizeLabel->setMinimumWidth(96);
+    m_velyntoraImageSizeLabel->setMaximumWidth(150);
+    m_velyntoraImageSizeLabel->setTextInteractionFlags(Qt::NoTextInteraction);
+    m_velyntoraImageSizeLabel->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+    m_velyntoraImageSizeLabel->setVisible(false);
+    addStatusBarItem(m_velyntoraImageSizeLabel);
+
+    QFrame *velyntoraStatusSeparator = new QFrame(m_statusBar);
+    velyntoraStatusSeparator->setObjectName(QStringLiteral("VelyntoraStatusSeparator"));
+    velyntoraStatusSeparator->setFrameShape(QFrame::VLine);
+    velyntoraStatusSeparator->setFrameShadow(QFrame::Sunken);
+    velyntoraStatusSeparator->setFixedHeight(20);
+    velyntoraStatusSeparator->setVisible(false);
+    addStatusBarItem(velyntoraStatusSeparator);
+
+    // Separator visibility is synchronized in imageSizeChanged().
+
     connect(m_memoryReportBox, SIGNAL(clicked()), SLOT(showMemoryInfoToolTip()));
 
     connect(KisMemoryStatisticsServer::instance(),
@@ -136,6 +402,25 @@ void KisStatusBar::setup()
 
     connect(m_canvasAngleSelector, SIGNAL(angleChanged(qreal)), SLOT(slotCanvasAngleSelectorAngleChanged(qreal)));
     m_canvasAngleSelector->setVisible(false);
+    m_canvasAngleSelector->setToolTip(i18n("Canvas rotation"));
+    m_canvasAngleSelector->setAccessibleName(i18n("Canvas rotation"));
+    m_canvasAngleSelector->setMinimumWidth(76);
+    m_canvasAngleSelector->setMaximumWidth(104);
+
+    // Keep the compact drawing bar usable on Android and narrow windows.
+    // Fixed swatches keep their touch targets while the palette itself yields
+    // space before Krita's zoom/status controls are squeezed.
+    quickColors->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
+    quickColors->setMaximumHeight(36);
+    quickColors->setToolTip(i18n("Quick colors"));
+    quickColors->setAccessibleName(i18n("Quick colors"));
+
+    // Keep the compact strip visually quiet like Pinta: no extra container
+    // background or frame, only the color controls themselves.
+    quickColors->setAttribute(Qt::WA_StyledBackground, false);
+    quickColors->setStyleSheet(QStringLiteral(
+        "#VelyntoraQuickColors { background: transparent; border: none; }"
+        "#VelyntoraAddQuickColor { font-weight: bold; padding: 0px; }"));
 }
 
 KisStatusBar::~KisStatusBar()
@@ -155,6 +440,8 @@ void KisStatusBar::setView(QPointer<KisView> imageView)
 
     if (imageView) {
         m_imageView = imageView;
+        // Rotation is part of the compact Velyntora Z bottom bar so the
+        // current canvas angle stays directly accessible beside size/zoom.
         m_canvasAngleSelector->setVisible(true);
         connect(m_imageView, SIGNAL(sigColorSpaceChanged(const KoColorSpace*)),
                 this, SLOT(updateStatusBarProfileLabel()));
@@ -236,6 +523,23 @@ void KisStatusBar::imageSizeChanged()
     m_memoryReportBox->setIcon(m_memoryStatusIcon);
     m_memoryReportBox->setText(sizeText);
     m_memoryReportBox->setToolTip(m_longMemoryTag);
+
+    if (m_velyntoraImageSizeLabel) {
+        if (image) {
+            m_velyntoraImageSizeLabel->setText(
+                i18nc("@info:status canvas dimensions", "%1 × %2 px", image->width(), image->height()));
+            m_velyntoraImageSizeLabel->setVisible(true);
+            if (QWidget *separator = m_statusBar->findChild<QWidget*>(QStringLiteral("VelyntoraStatusSeparator"))) {
+                separator->setVisible(true);
+            }
+        } else {
+            m_velyntoraImageSizeLabel->clear();
+            m_velyntoraImageSizeLabel->setVisible(false);
+            if (QWidget *separator = m_statusBar->findChild<QWidget*>(QStringLiteral("VelyntoraStatusSeparator"))) {
+                separator->setVisible(false);
+            }
+        }
+    }
 }
 
 void KisStatusBar::updateSelectionIcon()

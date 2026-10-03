@@ -27,7 +27,6 @@ public:
     void addPathShape(KoPathShape* pathShape) override;
 
     using KoCreatePathTool::createOptionWidgets;
-    using KoCreatePathTool::endPathWithoutLastPoint;
     using KoCreatePathTool::endPath;
     using KoCreatePathTool::cancelPath;
     using KoCreatePathTool::removeLastPoint;
@@ -55,8 +54,11 @@ public:
     void beginPrimaryAction(KoPointerEvent* event) override;
     void continuePrimaryAction(KoPointerEvent *event) override;
     void endPrimaryAction(KoPointerEvent *event) override;
+    void deactivate() override;
 
     void beginAlternateAction(KoPointerEvent *event, AlternateAction action) override;
+    void continueAlternateAction(KoPointerEvent *event, AlternateAction action) override;
+    void endAlternateAction(KoPointerEvent *event, AlternateAction action) override;
 
     // reimplementing KisTool's method because that method calls beginPrimaryAction
     // which now is used to start the path tool.
@@ -81,7 +83,7 @@ class KisToolPathFactory : public KisToolPaintFactoryBase
 public:
     KisToolPathFactory()
             : KisToolPaintFactoryBase("KisToolPath") {
-        setToolTip(i18n("Bezier Curve Tool: Shift-mouseclick ends the curve."));
+        setToolTip(i18n("Line/Curve Tool: draw a straight segment, then shape it as a curve."));
         setSection(ToolBoxSection::Shape);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
         setIconName(koIconNameCStr("krita_draw_path"));

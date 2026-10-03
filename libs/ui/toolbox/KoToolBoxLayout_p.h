@@ -273,13 +273,15 @@ public:
 
     QSize sizeHint() const override
     {
-        // Prefer showing two rows/columns by default
-        QSize twoIcons = static_cast<Section*> (m_sections[0]->widget())->iconSize() * 2;
-        const int length = doLayout(QRect(QPoint(), twoIcons), false);
+        // Velyntora Z: the drawing toolbox deliberately prefers three columns.
+        // This keeps Krita's complete tool set visible in a compact Pinta-like
+        // sidebar without removing or replacing any tool actions.
+        QSize threeIcons = static_cast<Section*> (m_sections[0]->widget())->iconSize() * 3;
+        const int length = doLayout(QRect(QPoint(), threeIcons), false);
         if (m_orientation == Qt::Vertical) {
-            return QSize(twoIcons.width(), length);
+            return QSize(threeIcons.width(), length);
         } else {
-            return QSize(length, twoIcons.height());
+            return QSize(length, threeIcons.height());
         }
     }
 

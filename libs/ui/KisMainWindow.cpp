@@ -20,6 +20,7 @@
 #include <QScreen>
 #include <QDialog>
 #include <QDockWidget>
+#include <QSizePolicy>
 #include <QIcon>
 #include <QInputDialog>
 #include <QLayout>
@@ -488,6 +489,59 @@ KisMainWindow::KisMainWindow(QUuid uuid)
         if (mainwindowObserver) {
             mainwindowObserver->setViewManager(d->viewManager);
         }
+    }
+
+    // Velyntora Z drawing workspace: keep Krita's engine and actions, but
+    // start from a simpler Pinta-like arrangement.  The toolbox remains on
+    // the left while Layers and Undo History form the primary stack on the
+    // right.  Other dockers are still available from Settings > Dockers.
+    if (toolbox) {
+        addDockWidget(Qt::LeftDockWidgetArea, toolbox);
+        toolbox->setVisible(true);
+
+        // Three compact tool columns are the Velyntora Z default.  Keep the
+        // strip narrow enough for Android landscape while allowing the
+        // toolbox's existing scroll area to expose every Krita tool.
+        toolbox->setMinimumWidth(112);
+        toolbox->setMaximumWidth(156);
+        toolbox->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
+    }
+
+    QDockWidget *layersDocker = d->dockWidgetsMap.value(QStringLiteral("KisLayerBox"));
+    QDockWidget *historyDocker = d->dockWidgetsMap.value(QStringLiteral("History"));
+
+    if (layersDocker) {
+        addDockWidget(Qt::RightDockWidgetArea, layersDocker);
+        layersDocker->setVisible(true);
+        layersDocker->setMinimumWidth(220);
+        layersDocker->setMaximumWidth(340);
+        layersDocker->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
+    }
+
+    if (historyDocker) {
+        addDockWidget(Qt::RightDockWidgetArea, historyDocker);
+        historyDocker->setVisible(true);
+        historyDocker->setMinimumWidth(220);
+        historyDocker->setMaximumWidth(340);
+        historyDocker->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
+
+        if (layersDocker) {
+            splitDockWidget(layersDocker, historyDocker, Qt::Vertical);
+            // Layers are the primary panel while History stays compact,
+            // matching the Velyntora Z drawing reference.
+            resizeDocks({layersDocker, historyDocker}, {3, 2}, Qt::Vertical);
+        }
+    }
+
+    // Velyntora Z uses the compact status-bar palette for drawing colors.
+    // Keep Krita's full Palette docker available from Settings > Dockers,
+    // but do not force it open in the default drawing workspace.
+
+    // Keep the central canvas as the visual priority. On narrower displays
+    // the two side areas remain bounded instead of expanding into the drawing
+    // surface; users can still resize dockers manually inside these limits.
+    if (toolbox && layersDocker && historyDocker) {
+        resizeDocks({toolbox, layersDocker}, {112, 260}, Qt::Horizontal);
     }
 
     d->mdiArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
