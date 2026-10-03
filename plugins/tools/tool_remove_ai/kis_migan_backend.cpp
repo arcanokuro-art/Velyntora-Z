@@ -464,6 +464,11 @@ KisRemoveAIBackend::Result KisMiganBackend::run(const Request &request)
     // inference, resize-back and blending itself. Prefer that path to avoid
     // applying those transforms twice.
     if (request.modelHandlesPipeline) {
+        // The official pipeline returns a full-source image, not an ROI-local
+        // image. Keep Result::sourceRect aligned with the returned image so
+        // write-back validation cannot mistake a full-canvas result for an
+        // ROI-sized result when the ROI happens to share dimensions.
+        result.sourceRect = request.source.rect();
         result.inferenceSize = request.source.size();
         if (!isAvailable()) {
             result.error = QStringLiteral("MI-GAN ONNX pipeline runtime is not installed yet.");
