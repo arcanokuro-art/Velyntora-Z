@@ -65,6 +65,9 @@ jobs:
           export KDECI_SKIP_ECM_ANDROID_TOOLCHAIN=True
           export KDECI_EXTRA_CMAKE_ARGS="-DHIDE_SAFE_ASSERTS=OFF -DBUILD_TESTING=OFF"
           python3 -u krita-deps-management/ci-utilities/run-ci-build.py --project krita --branch velyntora-android-apk --platform Android/arm64-v8a/Qt5/Shared --only-build --skip-publishing 2>&1 | tee build-krita-android.log
+          echo "=== Workspace immediately after KDE CI build ==="
+          find /tmp "$GITHUB_WORKSPACE" -type f -name CMakeCache.txt -print 2>/dev/null | sort -u | tee "$GITHUB_WORKSPACE/post-build-cmake-caches.txt" || true
+          find /tmp "$GITHUB_WORKSPACE" -type d -name krita_build_apk -print 2>/dev/null | sort -u | tee "$GITHUB_WORKSPACE/post-build-apk-dirs.txt" || true
 
       - name: Package debug APK
         shell: bash
@@ -72,7 +75,7 @@ jobs:
           set -euxo pipefail
           . venv/bin/activate
           export CI_COMMIT_SHORT_SHA="${GITHUB_SHA::8}"
-          find "$KDECI_WORKDIR_PATH" "$GITHUB_WORKSPACE" -type f -name CMakeCache.txt -print 2>/dev/null | sort -u | tee cmake-cache-files.txt || true
+          find /tmp "$GITHUB_WORKSPACE" -type f -name CMakeCache.txt -print 2>/dev/null | sort -u | tee cmake-cache-files.txt || true
           BUILD_CACHE=""
           while IFS= read -r cache; do
             if grep -Eq 'ANDROID|CMAKE_ANDROID|arm64-v8a|KDECI_ANDROID' "$cache"; then
@@ -164,6 +167,8 @@ jobs:
             create-apk-direct.log
             create-apk-status.txt
             cmake-cache-files.txt
+            post-build-cmake-caches.txt
+            post-build-apk-dirs.txt
           if-no-files-found: warn
 
       - name: Collect APK
