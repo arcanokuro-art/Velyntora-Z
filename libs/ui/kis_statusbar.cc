@@ -218,18 +218,28 @@ void KisStatusBar::setup()
                     qOverload<>(&QTimer::start));
             connect(swatch, &QToolButton::released, holdTimer, &QTimer::stop);
             connect(holdTimer, &QTimer::timeout, this, [swatch, removeCustomColor]() {
-                // A long press must not also activate the swatch when the
-                // finger is released after closing the context menu.
+                // Keep signals blocked until the physical press is released.
+                // QMenu::exec() runs a nested event loop; restoring signals as
+                // soon as the menu closes allowed QAbstractButton to emit the
+                // normal clicked() signal for the same long press, selecting a
+                // color while the user was trying to remove it.
                 swatch->setDown(false);
-                const bool signalsWereBlocked = swatch->blockSignals(true);
+                swatch->blockSignals(true);
                 QMenu menu;
                 QAction *remove = menu.addAction(i18n("Remove custom color"));
                 const bool shouldRemove =
                     menu.exec(swatch->mapToGlobal(swatch->rect().center())) == remove;
-                swatch->blockSignals(signalsWereBlocked);
                 if (shouldRemove) {
                     removeCustomColor();
+                    return;
                 }
+
+                // Re-enable normal swatch behavior only after the release
+                // belonging to this long press. Use a one-shot connection so
+                // subsequent taps behave exactly like ordinary color taps.
+                connect(swatch, &QToolButton::released, swatch, [swatch]() {
+                    swatch->blockSignals(false);
+                }, Qt::SingleShotConnection);
             });
         }
         return swatch;
