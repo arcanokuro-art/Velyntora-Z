@@ -72,7 +72,11 @@ jobs:
           set -euxo pipefail
           . venv/bin/activate
           export CI_COMMIT_SHORT_SHA="${GITHUB_SHA::8}"
+          set +e
           python3 -u build-tools/ci-scripts/build-android-package.py --package-type debug 2>&1 | tee build-apk.log
+          PACKAGE_SCRIPT_STATUS=${PIPESTATUS[0]}
+          set -e
+          echo "PACKAGE_SCRIPT_STATUS=$PACKAGE_SCRIPT_STATUS" | tee package-script-status.txt
           GRADLE_PROJECT="$KDECI_WORKDIR_PATH/krita/_build/krita_build_apk"
           echo "GRADLE_PROJECT=$GRADLE_PROJECT"
           if [ ! -d "$GRADLE_PROJECT" ]; then
@@ -130,6 +134,7 @@ jobs:
             gradle-assemble-debug.log
             gradle-project-files.txt
             android-build-directories.txt
+            package-script-status.txt
           if-no-files-found: warn
 
       - name: Collect APK
