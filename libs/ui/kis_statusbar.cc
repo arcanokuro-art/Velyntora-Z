@@ -234,12 +234,13 @@ void KisStatusBar::setup()
                     return;
                 }
 
-                // Re-enable normal swatch behavior only after the release
-                // belonging to this long press. Use a one-shot connection so
-                // subsequent taps behave exactly like ordinary color taps.
-                connect(swatch, &QToolButton::released, swatch, [swatch]() {
+                // Qt 5 (used by the current Krita build) has no
+                // Qt::SingleShotConnection. Queue the unblock instead: the
+                // release that completed the long press is processed first,
+                // and normal swatch signals are restored for the next tap.
+                QTimer::singleShot(0, swatch, [swatch]() {
                     swatch->blockSignals(false);
-                }, Qt::SingleShotConnection);
+                });
             });
         }
         return swatch;
