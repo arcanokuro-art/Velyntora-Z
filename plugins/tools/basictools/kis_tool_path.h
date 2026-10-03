@@ -79,6 +79,8 @@ protected Q_SLOTS:
     void resetCursorStyle() override;
 
 private:
+    void clearLineCurvePreview();
+
     enum class LineCurveState {
         Idle,
         DrawingStraight,
