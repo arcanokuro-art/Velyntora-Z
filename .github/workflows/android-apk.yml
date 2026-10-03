@@ -41,13 +41,13 @@ jobs:
           SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -type f -name sdkmanager 2>/dev/null | sort -V | tail -1)"
           test -x "$SDKMANAGER"
           yes | "$SDKMANAGER" --sdk_root="$SDK_ROOT" --licenses >/dev/null || true
-          "$SDKMANAGER" --sdk_root="$SDK_ROOT" "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;22.1.7171670"
-          test -d "$SDK_ROOT/ndk/22.1.7171670"
+          "$SDKMANAGER" --sdk_root="$SDK_ROOT" "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;27.3.13750724"
+          test -d "$SDK_ROOT/ndk/27.3.13750724"
           echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
-          echo "ANDROID_NDK_ROOT=$SDK_ROOT/ndk/22.1.7171670" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_ROOT=$SDK_ROOT/ndk/27.3.13750724" >> "$GITHUB_ENV"
           echo "KDECI_ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
-          echo "KDECI_ANDROID_NDK_ROOT=$SDK_ROOT/ndk/22.1.7171670" >> "$GITHUB_ENV"
+          echo "KDECI_ANDROID_NDK_ROOT=$SDK_ROOT/ndk/27.3.13750724" >> "$GITHUB_ENV"
 
       - name: Prepare Krita Android build tooling
         run: |
