@@ -104,13 +104,16 @@ bool KisToolPath::eventFilter(QObject *obj, QEvent *event)
             event->type() == QEvent::MouseButtonDblClick) {
         QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
         if (mouseEvent->button() == Qt::RightButton) {
-            localTool()->removeLastPoint();
+            // Line/Curve owns only one two-anchor segment. KoCreatePathTool's
+            // removeLastPoint() intentionally does nothing at this size, so a
+            // secondary click must cancel the whole live segment instead.
+            localTool()->cancelPath();
             return true;
         }
     } else if (event->type() == QEvent::TabletPress) {
         QTabletEvent *tabletEvent = static_cast<QTabletEvent*>(event);
         if (tabletEvent->button() == Qt::RightButton) {
-            localTool()->removeLastPoint();
+            localTool()->cancelPath();
             return true;
         }
     }
