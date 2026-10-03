@@ -72,14 +72,23 @@ jobs:
           python3 -u build-tools/ci-scripts/build-android-package.py 2>&1 | tee build-apk.log
 
       - name: Locate APK
+        shell: bash
         run: |
-          find /tmp/wd "$GITHUB_WORKSPACE" -type f -name "*.apk" -print | tee apk-files.txt
+          set -euxo pipefail
+          PACKAGING_DIR="$KDECI_WORKDIR_PATH/krita/_packaging"
+          test -d "$PACKAGING_DIR"
+          find "$PACKAGING_DIR" -maxdepth 1 -type f -name "*.apk" -print | tee apk-files.txt
           test -s apk-files.txt
 
       - name: Collect APK
+        shell: bash
         run: |
+          set -euxo pipefail
           mkdir -p apk-output
-          while IFS= read -r apk; do cp "$apk" apk-output/; done < apk-files.txt
+          while IFS= read -r apk; do
+            cp -v "$apk" apk-output/
+          done < apk-files.txt
+          test -n "$(find apk-output -maxdepth 1 -type f -name '*.apk' -print -quit)"
 
       - name: Upload Velyntora APK
         uses: actions/upload-artifact@v4
